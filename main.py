@@ -71,3 +71,22 @@ def generate_ai_coaching(private_tags):
 # Example: If a user got private tags about weight or hair
 user_needs_improvement = ["fitness", "hygiene"]
 print(generate_ai_coaching(user_needs_improvement))
+
+
+def ego_shield_coach(raw_feedback):
+    """
+    Translates raw (potentially harsh) feedback into 
+    encouraging AI coaching tips.
+    """
+    coaching_tips = {
+        "weight": "GOAL: Let's hit a 1-mile walk today! Staying active keeps your Spazz energy high. 🔥",
+        "hair": "STYLE TIP: A fresh trim or a quick groom today will boost your match rate by 40%!",
+        "breath": "PRO-TIP: Keep some mints handy; first impressions in the Spazz Zone are everything. 🍬"
+    }
+    
+    # AI selects the right 'encouragement' based on private tags
+    return [coaching_tips[tag] for tag in raw_feedback if tag in coaching_tips]
+
+# Test it out
+private_tags = ["weight", "hair"]
+print(ego_shield_coach(private_tags))
