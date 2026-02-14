@@ -52,3 +52,22 @@ def check_hotspot(user_lat, user_lon):
     if distance < 0.1: # Within 100 meters
         return "🔥 YOU ARE IN A SPAZZ ZONE! Energy is 10x. Go find a match!"
     return "Scanning for nearby Hotspots..."
+
+
+def generate_ai_coaching(private_tags):
+    """
+    Turns private feedback into encouraging lifestyle goals.
+    """
+    tips = []
+    
+    if "hygiene" in private_tags:
+        tips.append("AI TIP: Looking sharp is 50% of the Rizz. Fresh fit, fresh hair, fresh starts!")
+        
+    if "fitness" in private_tags:
+        tips.append("GOAL ALERT: It's beautiful out! Let's hit a 1-mile walk today to stay Spazz-ready.")
+        
+    return tips
+
+# Example: If a user got private tags about weight or hair
+user_needs_improvement = ["fitness", "hygiene"]
+print(generate_ai_coaching(user_needs_improvement))
