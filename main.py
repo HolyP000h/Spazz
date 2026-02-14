@@ -40,17 +40,15 @@ print(process_feedback(mock_feedback))
 
 
 
-def find_closest_match(user_location, all_nearby_users):
-    """Sorts everyone in the Spazz Zone by distance."""
-    # Logic to find the absolute closest connection
-    sorted_matches = sorted(all_nearby_users, key=lambda x: calculate_distance(
-        user_location['lat'], user_location['lon'], x['lat'], x['lon']
-    ))
-    return sorted_matches[0] # Returns the person right next to you!
+# --- SPAZZ HOTSPOT LOGIC ---
+
+def check_hotspot(user_lat, user_lon):
+    """Checks if the user is inside a high-energy 'Spazz Zone'."""
+    # Example: The 'Bar on Main St' coordinates
+    hotspot_lat, hotspot_lon = 40.7128, -74.0060 
     
-
-
-​{
-"action": "image_generation",
-"action_input": "A high-energy, neon app icon for 'Spazz'. The design features a stylized heart made of electric lightning bolts pulsing with vibrant pink and cyan light. The aesthetic is futuristic and disruptive, set against a deep matte black background to make the glow pop. It looks like a premium tech brand, 3D rendered with a slight glass-morphism effect."
-}
+    distance = calculate_distance(user_lat, user_lon, hotspot_lat, hotspot_lon)
+    
+    if distance < 0.1: # Within 100 meters
+        return "🔥 YOU ARE IN A SPAZZ ZONE! Energy is 10x. Go find a match!"
+    return "Scanning for nearby Hotspots..."
