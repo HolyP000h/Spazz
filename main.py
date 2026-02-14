@@ -48,3 +48,9 @@ def find_closest_match(user_location, all_nearby_users):
     ))
     return sorted_matches[0] # Returns the person right next to you!
     
+
+
+​{
+"action": "image_generation",
+"action_input": "A high-energy, neon app icon for 'Spazz'. The design features a stylized heart made of electric lightning bolts pulsing with vibrant pink and cyan light. The aesthetic is futuristic and disruptive, set against a deep matte black background to make the glow pop. It looks like a premium tech brand, 3D rendered with a slight glass-morphism effect."
+}
