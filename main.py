@@ -37,3 +37,14 @@ def process_feedback(survey_results):
 # Example usage for your trial run
 mock_feedback = [4, 5, 7] # Private scores from a date
 print(process_feedback(mock_feedback))
+
+
+
+def find_closest_match(user_location, all_nearby_users):
+    """Sorts everyone in the Spazz Zone by distance."""
+    # Logic to find the absolute closest connection
+    sorted_matches = sorted(all_nearby_users, key=lambda x: calculate_distance(
+        user_location['lat'], user_location['lon'], x['lat'], x['lon']
+    ))
+    return sorted_matches[0] # Returns the person right next to you!
+    
