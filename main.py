@@ -96,30 +96,23 @@ def should_we_spazz(user_a, user_b, distance_km):
     return spazz_intensity(distance_km)
 
 
-
-import requests # Add this to your requirements.txt!
-
-def send_push_notification(user_id, message, intensity=0):
-    """
-    Sends a notification to the user's phone.
-    Intensity > 0 tells the phone to start vibrating.
-    """
-    # This is a placeholder for your Firebase or OneSignal API URL
-    push_service_url = "https://fcm.googleapis.com/fcm/send"
-    
-    payload = {
-        "to": f"/topics/user_{user_id}",
-        "notification": {
-            "title": "Spazz Alert! 🚨",
-            "body": message,
-            "sound": "default"
-        },
-        "data": {
-            "intensity": intensity, # The 'Spazz' level (0-101)
-            "type": "nudge" if intensity == 0 else "proximity"
-        }
-    }
-    
     # In a real app, you'd send this to Google/Apple:
     # requests.post(push_service_url, json=payload, headers=headers)
     print(f"NOTIFICATION SENT TO {user_id}: {message} (Intensity: {intensity})")
+
+async def check_user_vibe(user_a, user_b):
+    dist = calculate_distance(user_a.lat, user_a.lon, user_b.lat, user_b.lon)
+
+    # SCENARIO A: Both On the Clock & Mutual Likes
+    if user_a.on_clock and user_b.on_clock and user_a.likes(user_b):
+        intensity = spazz_intensity(dist)
+        if intensity > 0:
+            send_push_notification(user_a.id, "HE IS NEAR! Look for the lights!", intensity)
+            send_push_notification(user_b.id, "SHE IS NEAR! Look for the lights!", intensity)
+
+    # SCENARIO B: One is Off the Clock (The Nudge)
+    elif not user_b.on_clock and dist < 0.1: # Within 100 meters
+        # We check a 'cooldown' so we don't spam them
+        if user_b.can_be_nudged(): 
+            send_push_notification(user_b.id, "Psst... someone's in your vicinity! Clock in to find them?")
+            user_b.update_nudge_cooldown()
