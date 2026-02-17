@@ -60,3 +60,37 @@ def ego_shield_coach(raw_feedback):
 # Test the AI Shield
 private_tags = ["weight", "hygiene"]
 print(ego_shield_coach(private_tags))
+
+
+def check_spazz_conditions(user_a, user_b, dist):
+    # Condition 1: Are they within range?
+    # Condition 2: Are they BOTH on the clock?
+    # Condition 3: Have they BOTH swiped 'Yes' on each other?
+    
+    if dist < 0.5 and user_a.on_clock and user_b.on_clock:
+        if user_a.has_liked(user_b) and user_b.has_liked(user_a):
+            return spazz_intensity(dist)
+    return 0
+
+
+def process_vicinity_check(user_a, user_b, dist):
+    # Both are on the clock? Full Spazz Mode.
+    if user_a.on_clock and user_b.on_clock:
+        return spazz_intensity(dist)
+    
+    # User B is off the clock but User A is near? Send the nudge.
+    if not user_b.on_clock and dist < 0.1: # 100 meters
+        send_nudge_notification(user_b.id, "Psst... someone is in your vicinity! Clock in?")
+        
+    return 0
+
+
+def should_we_spazz(user_a, user_b, distance_km):
+    """
+    Final Gatekeeper: Only spazzes if BOTH users are 'On the Clock'.
+    """
+    if not user_a.is_on_clock or not user_b.is_on_clock:
+        return "Silent Mode: One or both users are off the clock."
+    
+    # If both are on, get that intensity!
+    return spazz_intensity(distance_km)
