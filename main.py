@@ -1,4 +1,4 @@
-import math
+import math # Fixed the 'Import' typo
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """The 'Spazz' Proximity Engine: Calculates distance in km."""
@@ -11,67 +11,36 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 def spazz_intensity(distance_km):
-    """Calculates how fast the jewelry/phone should flash (0-100%)."""
+    """
+    Calculates how fast the phone should flash (0-100%).
+    - Under 5 meters: Returns 101 (Solid Mode)
+    - 5m to 500m: Exponentially increases intensity
+    """
     max_range = 0.5 # 500 meters
-    if distance_km > max_range: return 0
-    return round((1 - (distance_km / max_range)) * 100)
-
-# Example Demo Match
-dist = calculate_distance(40.7128, -74.0060, 40.7130, -74.0062)
-print(f"Match found! Spazz Intensity: {spazz_intensity(dist)}%")
-
-
-
-# --- Spazz AI Feedback System ---
-
-def process_feedback(survey_results):
-    """Analyzes private user feedback to generate AI tips."""
-    # Example: feedback is a list of scores from 1-10
-    average_score = sum(survey_results) / len(survey_results)
     
-    if average_score < 6:
-        return "AI TIP: Your energy might be coming off too strong. Try slowing down the 'Rizz' and listening more!"
-    else:
-        return "AI TIP: Great match! Your confidence is your strength. Keep it up!"
-
-# Example usage for your trial run
-mock_feedback = [4, 5, 7] # Private scores from a date
-print(process_feedback(mock_feedback))
-
-
-
-# --- SPAZZ HOTSPOT LOGIC ---
-
-def check_hotspot(user_lat, user_lon):
-    """Checks if the user is inside a high-energy 'Spazz Zone'."""
-    # Example: The 'Bar on Main St' coordinates
-    hotspot_lat, hotspot_lon = 40.7128, -74.0060 
+    if distance_km > max_range: 
+        return 0
     
-    distance = calculate_distance(user_lat, user_lon, hotspot_lat, hotspot_lon)
+    # Face-to-Face Trigger (Within 5 meters)
+    if distance_km <= 0.005:
+        return 101 
     
-    if distance < 0.1: # Within 100 meters
-        return "🔥 YOU ARE IN A SPAZZ ZONE! Energy is 10x. Go find a match!"
-    return "Scanning for nearby Hotspots..."
+    # Exponential Intensity: Closer = much faster 'spazz'
+    intensity = ((1 - (distance_km / max_range)) ** 2) * 100
+    return round(intensity)
+
+# --- Example Demo Walk ---
+# Simulating being 10 meters away
+dist = calculate_distance(40.7128, -74.0060, 40.71285, -74.00605)
+intensity = spazz_intensity(dist)
+
+if intensity == 101:
+    print("🚨 SOLID LIGHTS & VIBRATION: FACE TO FACE MODE 🚨")
+else:
+    print(f"Match nearby! Spazz Intensity: {intensity}%")
 
 
-def generate_ai_coaching(private_tags):
-    """
-    Turns private feedback into encouraging lifestyle goals.
-    """
-    tips = []
-    
-    if "hygiene" in private_tags:
-        tips.append("AI TIP: Looking sharp is 50% of the Rizz. Fresh fit, fresh hair, fresh starts!")
-        
-    if "fitness" in private_tags:
-        tips.append("GOAL ALERT: It's beautiful out! Let's hit a 1-mile walk today to stay Spazz-ready.")
-        
-    return tips
-
-# Example: If a user got private tags about weight or hair
-user_needs_improvement = ["fitness", "hygiene"]
-print(generate_ai_coaching(user_needs_improvement))
-
+# --- Spazz AI Feedback & Ego Shield ---
 
 def ego_shield_coach(raw_feedback):
     """
@@ -81,12 +50,13 @@ def ego_shield_coach(raw_feedback):
     coaching_tips = {
         "weight": "GOAL: Let's hit a 1-mile walk today! Staying active keeps your Spazz energy high. 🔥",
         "hair": "STYLE TIP: A fresh trim or a quick groom today will boost your match rate by 40%!",
-        "breath": "PRO-TIP: Keep some mints handy; first impressions in the Spazz Zone are everything. 🍬"
+        "breath": "PRO-TIP: Keep some mints handy; first impressions in the Spazz Zone are everything. 🍬",
+        "hygiene": "AI TIP: Looking sharp is 50% of the Rizz. Fresh fit, fresh hair, fresh starts!"
     }
     
-    # AI selects the right 'encouragement' based on private tags
-    return [coaching_tips[tag] for tag in raw_feedback if tag in coaching_tips]
+    # AI selects encouragement; defaults to a general tip if tag isn't found
+    return [coaching_tips.get(tag, "Keep leveling up! You got this.") for tag in raw_feedback]
 
-# Test it out
-private_tags = ["weight", "hair"]
+# Test the AI Shield
+private_tags = ["weight", "hygiene"]
 print(ego_shield_coach(private_tags))
