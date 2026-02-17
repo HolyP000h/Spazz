@@ -1,4 +1,4 @@
-import math # Fixed the 'Import' typo
+I'mimport math # Fixed the 'Import' typo
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """The 'Spazz' Proximity Engine: Calculates distance in km."""
@@ -116,3 +116,13 @@ async def check_user_vibe(user_a, user_b):
         if user_b.can_be_nudged(): 
             send_push_notification(user_b.id, "Psst... someone's in your vicinity! Clock in to find them?")
             user_b.update_nudge_cooldown()
+
+class User:
+    def __init__(self, username, is_premium=False):
+        self.username = username
+        self.is_premium = is_premium
+        self.rizz_tokens = 0
+
+# Example logic:
+if not user.is_premium and distance_km < 0.1:
+    print("Upgrade to Spazz Pro to see exactly who is nearby!")
