@@ -94,3 +94,32 @@ def should_we_spazz(user_a, user_b, distance_km):
     
     # If both are on, get that intensity!
     return spazz_intensity(distance_km)
+
+
+
+import requests # Add this to your requirements.txt!
+
+def send_push_notification(user_id, message, intensity=0):
+    """
+    Sends a notification to the user's phone.
+    Intensity > 0 tells the phone to start vibrating.
+    """
+    # This is a placeholder for your Firebase or OneSignal API URL
+    push_service_url = "https://fcm.googleapis.com/fcm/send"
+    
+    payload = {
+        "to": f"/topics/user_{user_id}",
+        "notification": {
+            "title": "Spazz Alert! 🚨",
+            "body": message,
+            "sound": "default"
+        },
+        "data": {
+            "intensity": intensity, # The 'Spazz' level (0-101)
+            "type": "nudge" if intensity == 0 else "proximity"
+        }
+    }
+    
+    # In a real app, you'd send this to Google/Apple:
+    # requests.post(push_service_url, json=payload, headers=headers)
+    print(f"NOTIFICATION SENT TO {user_id}: {message} (Intensity: {intensity})")
