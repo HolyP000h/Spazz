@@ -1,4 +1,4 @@
-I'mimport math # Fixed the 'Import' typo
+import math
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """The 'Spazz' Proximity Engine: Calculates distance in km."""
