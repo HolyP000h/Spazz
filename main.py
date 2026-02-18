@@ -126,3 +126,43 @@ class User:
 # Example logic:
 if not user.is_premium and distance_km < 0.1:
     print("Upgrade to Spazz Pro to see exactly who is nearby!")
+
+class User:
+    def __init__(self, username, is_premium=False):
+        self.username = username
+        self.is_premium = is_premium  # Subscription (Hotspots)
+        self.nudges_balance = 0        # Consumable IAP (Nudges)
+        self.on_clock = False
+        self.last_ad_viewed = None    # To prevent ad spam
+
+def clock_in_user(user):
+    if user.is_premium:
+        user.on_clock = True
+        return "Clocked in instantly! (Premium benefit)"
+    else:
+        # Trigger an Ad on the frontend, then set on_clock to True
+        # In the backend, we just log the intent
+        user.on_clock = True 
+        return "Showing Ad... Clocking in after."
+
+def process_vicinity_check(user_a, user_b, dist):
+    # If User B is off the clock, User A can "Nudge" them to come online
+    if not user_b.on_clock and dist < 0.1: 
+        if user_a.is_premium or user_a.nudges_balance > 0:
+            if not user_a.is_premium:
+                user_a.nudges_balance -= 1 # Deduct a nudge token
+            
+            send_nudge_notification(user_b.id, "Someone is nearby! Clock in?")
+            return f"Nudge sent! Tokens remaining: {user_a.nudges_balance}"
+        else:
+            return "Out of nudges! Buy more to alert matches when they are nearby."
+    
+    return 0
+def get_hotspots(user, all_active_users):
+    if not user.is_premium:
+        return "Upgrade to Spazz Pro to see the local Hotspots map!"
+    
+    # Logic to find clusters of 'on_clock' users
+    # ... (Your map logic here)
+    return "Displaying the hottest Spazz Zones near you."
+
