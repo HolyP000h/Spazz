@@ -1,168 +1,92 @@
 import math
+import time
+import random
+import asyncio
 
+# --- 1. THE CORE ENGINE ---
 def calculate_distance(lat1, lon1, lat2, lon2):
-    """The 'Spazz' Proximity Engine: Calculates distance in km."""
     R = 6371 # Earth radius in km
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    
     a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 def spazz_intensity(distance_km):
-    """
-    Calculates how fast the phone should flash (0-100%).
-    - Under 5 meters: Returns 101 (Solid Mode)
-    - 5m to 500m: Exponentially increases intensity
-    """
     max_range = 0.5 # 500 meters
-    
-    if distance_km > max_range: 
-        return 0
-    
-    # Face-to-Face Trigger (Within 5 meters)
-    if distance_km <= 0.005:
-        return 101 
-    
-    # Exponential Intensity: Closer = much faster 'spazz'
-    intensity = ((1 - (distance_km / max_range)) ** 2) * 100
-    return round(intensity)
+    if distance_km > max_range: return 0
+    if distance_km <= 0.005: return 101 # Face-to-Face
+    return round(((1 - (distance_km / max_range)) ** 2) * 100)
 
-# --- Example Demo Walk ---
-# Simulating being 10 meters away
-dist = calculate_distance(40.7128, -74.0060, 40.71285, -74.00605)
-intensity = spazz_intensity(dist)
-
-if intensity == 101:
-    print("🚨 SOLID LIGHTS & VIBRATION: FACE TO FACE MODE 🚨")
-else:
-    print(f"Match nearby! Spazz Intensity: {intensity}%")
-
-
-# --- Spazz AI Feedback & Ego Shield ---
-
-def ego_shield_coach(raw_feedback):
-    """
-    Translates raw (potentially harsh) feedback into 
-    encouraging AI coaching tips.
-    """
+# --- 2. AI COACHING (EGO SHIELD) ---
+def ego_shield_coach(raw_feedback_tags):
     coaching_tips = {
         "weight": "GOAL: Let's hit a 1-mile walk today! Staying active keeps your Spazz energy high. 🔥",
         "hair": "STYLE TIP: A fresh trim or a quick groom today will boost your match rate by 40%!",
         "breath": "PRO-TIP: Keep some mints handy; first impressions in the Spazz Zone are everything. 🍬",
         "hygiene": "AI TIP: Looking sharp is 50% of the Rizz. Fresh fit, fresh hair, fresh starts!"
     }
-    
-    # AI selects encouragement; defaults to a general tip if tag isn't found
-    return [coaching_tips.get(tag, "Keep leveling up! You got this.") for tag in raw_feedback]
+    return [coaching_tips.get(tag, "Keep leveling up! You got this.") for tag in raw_feedback_tags]
 
-# Test the AI Shield
-private_tags = ["weight", "hygiene"]
-print(ego_shield_coach(private_tags))
+# --- 3. THE USER SYSTEM ---
+class User:
+    def __init__(self, user_id, username, is_premium=False):
+        self.id = user_id
+        self.username = username
+        self.is_premium = is_premium
+        self.on_clock = False
+        self.nudges_balance = 5
+        self.lat = 0.0
+        self.lon = 0.0
+        self.last_nudge_time = 0
 
+    def can_be_nudged(self):
+        return (time.time() - self.last_nudge_time) > 300
 
-def check_spazz_conditions(user_a, user_b, dist):
-    # Condition 1: Are they within range?
-    # Condition 2: Are they BOTH on the clock?
-    # Condition 3: Have they BOTH swiped 'Yes' on each other?
-    
-    if dist < 0.5 and user_a.on_clock and user_b.on_clock:
-        if user_a.has_liked(user_b) and user_b.has_liked(user_a):
-            return spazz_intensity(dist)
-    return 0
+    def update_nudge_cooldown(self):
+        self.last_nudge_time = time.time()
 
+# --- 4. THE COMMUNICATION LAYER ---
+def send_notification(user_id, message, intensity=0):
+    print(f"--- 📱 NOTIFICATION TO {user_id} ---")
+    print(f"Message: {message}")
+    if intensity > 0:
+        print(f"Haptic Intensity: {intensity}%")
+    print("-" * 30)
+    return True
 
-def process_vicinity_check(user_a, user_b, dist):
-    # Both are on the clock? Full Spazz Mode.
-    if user_a.on_clock and user_b.on_clock:
-        return spazz_intensity(dist)
-    
-    # User B is off the clock but User A is near? Send the nudge.
-    if not user_b.on_clock and dist < 0.1: # 100 meters
-        send_nudge_notification(user_b.id, "Psst... someone is in your vicinity! Clock in?")
-        
-    return 0
+def trigger_nudge_with_shield(target_user):
+    concerns = ["weight", "hair", "breath", "hygiene"]
+    detected_concern = [random.choice(concerns)]
+    shielded_tips = ego_shield_coach(detected_concern)
+    full_message = f"Someone is nearby! {shielded_tips[0]} Clock in?"
+    send_notification(target_user.id, full_message)
 
-
-def should_we_spazz(user_a, user_b, distance_km):
-    """
-    Final Gatekeeper: Only spazzes if BOTH users are 'On the Clock'.
-    """
-    if not user_a.is_on_clock or not user_b.is_on_clock:
-        return "Silent Mode: One or both users are off the clock."
-    
-    # If both are on, get that intensity!
-    return spazz_intensity(distance_km)
-
-
-    # In a real app, you'd send this to Google/Apple:
-    # requests.post(push_service_url, json=payload, headers=headers)
-    print(f"NOTIFICATION SENT TO {user_id}: {message} (Intensity: {intensity})")
-
+# --- 5. THE LOGIC GATEKEEPER ---
 async def check_user_vibe(user_a, user_b):
     dist = calculate_distance(user_a.lat, user_a.lon, user_b.lat, user_b.lon)
 
-    # SCENARIO A: Both On the Clock & Mutual Likes
-    if user_a.on_clock and user_b.on_clock and user_a.likes(user_b):
+    # SCENARIO A: Both On the Clock
+    if user_a.on_clock and user_b.on_clock:
         intensity = spazz_intensity(dist)
         if intensity > 0:
-            send_push_notification(user_a.id, "HE IS NEAR! Look for the lights!", intensity)
-            send_push_notification(user_b.id, "SHE IS NEAR! Look for the lights!", intensity)
-
-    # SCENARIO B: One is Off the Clock (The Nudge)
-    elif not user_b.on_clock and dist < 0.1: # Within 100 meters
-        # We check a 'cooldown' so we don't spam them
-        if user_b.can_be_nudged(): 
-            send_push_notification(user_b.id, "Psst... someone's in your vicinity! Clock in to find them?")
+            send_notification(user_a.id, "MATCH NEARBY! Find the lights!", intensity)
+            send_notification(user_b.id, "MATCH NEARBY! Find the lights!", intensity)
+    
+    # SCENARIO B: The Smart Nudge (Ego Shield)
+    elif not user_b.on_clock and dist < 0.1:
+        if user_b.can_be_nudged():
+            trigger_nudge_with_shield(user_b)
             user_b.update_nudge_cooldown()
 
-class User:
-    def __init__(self, username, is_premium=False):
-        self.username = username
-        self.is_premium = is_premium
-        self.rizz_tokens = 0
+# --- 6. EXECUTION ---
+me = User(1, "SpazzMaster_99", is_premium=False)
+them = User(2, "RizzQueen", is_premium=True)
 
-# Example logic:
-if not user.is_premium and distance_km < 0.1:
-    print("Upgrade to Spazz Pro to see exactly who is nearby!")
+me.lat, me.lon = 40.7128, -74.0060
+them.lat, them.lon = 40.71285, -74.00605 
 
-class User:
-    def __init__(self, username, is_premium=False):
-        self.username = username
-        self.is_premium = is_premium  # Subscription (Hotspots)
-        self.nudges_balance = 0        # Consumable IAP (Nudges)
-        self.on_clock = False
-        self.last_ad_viewed = None    # To prevent ad spam
+if not me.is_premium:
+    print("PRO TIP: Upgrade to Spazz Pro to see Hotspots!")
 
-def clock_in_user(user):
-    if user.is_premium:
-        user.on_clock = True
-        return "Clocked in instantly! (Premium benefit)"
-    else:
-        # Trigger an Ad on the frontend, then set on_clock to True
-        # In the backend, we just log the intent
-        user.on_clock = True 
-        return "Showing Ad... Clocking in after."
-
-def process_vicinity_check(user_a, user_b, dist):
-    # If User B is off the clock, User A can "Nudge" them to come online
-    if not user_b.on_clock and dist < 0.1: 
-        if user_a.is_premium or user_a.nudges_balance > 0:
-            if not user_a.is_premium:
-                user_a.nudges_balance -= 1 # Deduct a nudge token
-            
-            send_nudge_notification(user_b.id, "Someone is nearby! Clock in?")
-            return f"Nudge sent! Tokens remaining: {user_a.nudges_balance}"
-        else:
-            return "Out of nudges! Buy more to alert matches when they are nearby."
-    
-    return 0
-def get_hotspots(user, all_active_users):
-    if not user.is_premium:
-        return "Upgrade to Spazz Pro to see the local Hotspots map!"
-    
-    # Logic to find clusters of 'on_clock' users
-    # ... (Your map logic here)
-    return "Displaying the hottest Spazz Zones near you."
-
+asyncio.run(check_user_vibe(me, them))
