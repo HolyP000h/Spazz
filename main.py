@@ -93,6 +93,20 @@ def nudge_user(sender_id: int, receiver_id: int):
     return {"message": f"Nudge delivered from {sender.username} to {receiver.username}!"}
 
 # --- LOCAL SIMULATOR ---
+@app.post("/block/{user_id}/{target_id}")
+def block_user(user_id: int, target_id: int):
+    users = load_from_db()
+    me = next((u for u in users if u.id == user_id), None)
+    
+    if me:
+        if target_id not in me.blocked_users:
+            me.blocked_users.append(target_id)
+            save_to_db(users)
+            return {"message": f"User {target_id} has been blocked."}
+        return {"message": "User already blocked."}
+    
+    return {"error": "User not found."}
+
 if __name__ == "__main__":
     active_users = load_from_db()
     if not active_users:
