@@ -1,1 +1,29 @@
-{"users": []}
+class User:
+    def __init__(self, id, username, is_premium=False, on_clock=False, 
+                 nudges_balance=5, lat=0.0, lon=0.0, last_nudge_time=0):
+        self.id = id
+        self.username = username
+        self.is_premium = is_premium
+        self.on_clock = on_clock
+        self.nudges_balance = nudges_balance
+        self.lat = lat
+        self.lon = lon
+        self.last_nudge_time = last_nudge_time
+
+    def to_dict(self):
+        return vars(self)
+
+# --- DATABASE LOGIC ---
+def save_to_db(users_list):
+    data = {"users": [u.to_dict() for u in users_list]}
+    with open('users_db.json', 'w') as f:
+        json.dump(data, f, indent=4)
+    print("💾 Data saved to users_db.json")
+
+def load_from_db():
+    try:
+        with open('users_db.json', 'r') as f:
+            data = json.load(f)
+            return [User(**u) for u in data["users"]]
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
