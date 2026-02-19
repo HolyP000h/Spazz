@@ -78,3 +78,28 @@ def get_users():
     # We turn the objects back into a list of dictionaries for the web
     users = load_from_db()
     return [u.to_dict() for u in users]
+
+@app.post("/nudge/{sender_id}/{receiver_id}")
+def nudge_user(sender_id: int, receiver_id: int):
+    users = load_from_db()
+    
+    # Find the sender and receiver in our list
+    sender = next((u for u in users if u.id == sender_id), None)
+    receiver = next((u for u in users if u.id == receiver_id), None)
+
+    if not sender or not receiver:
+        return {"error": "User not found"}
+
+    if sender.nudges_balance <= 0:
+        return {"error": "Out of nudges! Wait for a refill or go Premium."}
+
+    # The Logic: Deduct from sender, maybe send a notification to receiver later
+    sender.nudges_balance -= 1
+    
+    # Save the new balances to the JSON file
+    save_to_db(users)
+    
+    return {
+        "message": f"{sender.username} nudged {receiver.username}!",
+        "remaining_nudges": sender.nudges_balance
+    }
