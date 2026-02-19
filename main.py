@@ -72,6 +72,9 @@ app = FastAPI()
 def home():
     return {"message": "Spazz API is Live!"}
 
+
 @app.get("/users")
 def get_users():
-    return load_from_db()
+    # We turn the objects back into a list of dictionaries for the web
+    users = load_from_db()
+    return [u.to_dict() for u in users]
