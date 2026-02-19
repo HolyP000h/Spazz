@@ -53,6 +53,29 @@ def nudge_user(sender_id: int, receiver_id: int):
 
     if not sender or not receiver:
         return {"error": "User missing from database"}
+@app.post("/nudge/{sender_id}/{receiver_id}")
+def nudge_user(sender_id: int, receiver_id: int):
+    users = load_from_db()
+    sender = next((u for u in users if u.id == sender_id), None)
+    receiver = next((u for u in users if u.id == receiver_id), None)
+
+    # 1. Check if receiver is in the sender's age range
+    if not (sender.min_age <= receiver.age <= sender.max_age):
+        return {"error": "This user is outside your age preference."}
+
+    # 2. Check if the SENDER is in the receiver's age range
+    # (This stops the "old man" problem you mentioned)
+    if not (receiver.min_age <= sender.age <= receiver.max_age):
+        return {"error": "You are outside this user's age preference."}
+
+    # 3. Gender Preference Check
+    if sender.interested_in != "Both" and sender.interested_in != receiver.gender:
+        return {"error": "You don't match this user's gender preference."}
+
+    # If all checks pass... execute nudge!
+    sender.nudges_balance -= 1
+    save_to_db(users)
+    return {"message": "Nudge delivered!"}
 
     if sender.nudges_balance <= 0 and not sender.is_premium:
         return {"error": "No nudges left. Wait for refill or buy Premium!"}
