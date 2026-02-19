@@ -63,3 +63,15 @@ if __name__ == "__main__":
     # Save the status back to the database
     save_to_db(active_users)
     print("🏁 Session complete. Check your users_db.json file!")
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "Spazz API is Live!"}
+
+@app.get("/users")
+def get_users():
+    return load_from_db()
