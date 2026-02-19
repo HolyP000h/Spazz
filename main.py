@@ -19,7 +19,8 @@ class User:
                  min_age=18, max_age=99, is_premium=False, 
                  on_clock=False, nudges_balance=5, lat=0.0, lon=0.0, 
                  last_nudge_time=0, blocked_users=None, 
-                 credits=0, inventory=None, active_skin="basic_white", **kwargs):
+                 credits=0, inventory=None, active_skin="basic_white", 
+                 last_reward_time=0, **kwargs):
         
         self.id = int(id)
         self.username = username
@@ -38,6 +39,7 @@ class User:
         self.credits = credits  
         self.active_skin = active_skin 
         self.inventory = inventory if inventory else ["basic_white"]
+        self.last_reward_time = last_reward_time
 
     def to_dict(self):
         return vars(self)
@@ -79,16 +81,12 @@ def nudge_user(sender_id: int, receiver_id: int):
     users = load_from_db()
     sender = next((u for u in users if u.id == sender_id), None)
     receiver = next((u for u in users if u.id == receiver_id), None)
-
-    if not sender or not receiver:
-        return {"error": "User missing"}
-
-    # THE SHIELD
+    if not sender or not receiver: return {"error": "User missing"}
+    
     if sender_id in receiver.blocked_users: return {"error": "Blocked."}
     if not (sender.min_age <= receiver.age <= sender.max_age): return {"error": "Age mismatch."}
     if not (receiver.min_age <= sender.age <= receiver.max_age): return {"error": "They don't want you."}
-    if sender.interested_in != "Both" and sender.interested_in != receiver.gender: return {"error": "Gender mismatch."}
-
+    
     if sender.nudges_balance <= 0 and not sender.is_premium:
         return {"error": "No nudges left!"}
 
@@ -96,34 +94,53 @@ def nudge_user(sender_id: int, receiver_id: int):
     save_to_db(users)
     return {"message": "Nudge delivered!"}
 
+@app.get("/pulse/{user_id}/{target_id}")
+def get_pulse(user_id: int, target_id: int):
+    users = load_from_db()
+    me = next((u for u in users if u.id == user_id), None)
+    them = next((u for u in users if u.id == target_id), None)
+    
+    dist = calculate_distance(me.lat, me.lon, them.lat, them.lon)
+    
+    # PULSE LOGIC: Distance in Miles
+    if dist < 0.002: # ~10 feet
+        status = {"mode": "STROBE", "vibe": "SOLID", "speed": 0}
+    elif dist < 0.05: # Close
+        status = {"mode": "PULSE", "vibe": "FAST", "speed": 0.5}
+    elif dist < 0.2: # Getting warmer
+        status = {"mode": "PULSE", "vibe": "MEDIUM", "speed": 2.0}
+    else: # Cold
+        status = {"mode": "PULSE", "vibe": "SLOW", "speed": 5.0}
+        
+    skin = SPAZZ_CATALOG.get(them.active_skin, SPAZZ_CATALOG["basic_white"])
+    return {"distance": round(dist, 4), "pulse": status, "target_skin": skin}
+
 @app.post("/buy_item/{user_id}/{item_id}")
 def buy_item(user_id: int, item_id: str):
     users = load_from_db()
     user = next((u for u in users if u.id == user_id), None)
+    if not user or item_id not in SPAZZ_CATALOG: return {"error": "Invalid item"}
     
-    if not user or item_id not in SPAZZ_CATALOG:
-        return {"error": "Invalid item or user"}
-    if item_id in user.inventory:
-        return {"error": "Already owned!"}
-        
     price = SPAZZ_CATALOG[item_id]["price"]
-    if user.credits >= price:
+    if user.credits >= price and item_id not in user.inventory:
         user.credits -= price
         user.inventory.append(item_id)
         user.active_skin = item_id
         save_to_db(users)
         return {"message": f"Equipped {SPAZZ_CATALOG[item_id]['name']}!"}
-    return {"error": "Broke! Need more credits."}
+    return {"error": "Purchase failed"}
 
-@app.post("/block/{user_id}/{target_id}")
-def block_user(user_id: int, target_id: int):
+@app.post("/daily_reward/{user_id}")
+def claim_daily_reward(user_id: int):
     users = load_from_db()
-    me = next((u for u in users if u.id == user_id), None)
-    if me and target_id not in me.blocked_users:
-        me.blocked_users.append(target_id)
-        save_to_db(users)
-        return {"message": "User blocked."}
-    return {"error": "Action failed."}
+    user = next((u for u in users if u.id == user_id), None)
+    now = time.time()
+    if now - user.last_reward_time < 86400:
+        return {"error": "Too soon!"}
+    user.credits += 50
+    user.last_reward_time = now
+    save_to_db(users)
+    return {"message": "Credits added!"}
 
 if __name__ == "__main__":
-    print("🚀 Simulator mode active. Run 'uvicorn main:app --reload' for Web mode.")
+    print("🚀 Engine Ready. Run: uvicorn main:app --reload")
