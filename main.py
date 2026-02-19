@@ -9,19 +9,16 @@ app = FastAPI()
 
 # --- THE USER BLUEPRINT ---
 class User:
-    def __init__(self, id, username, is_premium=False, on_clock=False, 
-                 nudges_balance=5, lat=0.0, lon=0.0, last_nudge_time=0):
-        self.id = int(id)  # Ensure ID is always an integer
+    def __init__(self, id, username, age, gender, interested_in, 
+                 min_age=18, max_age=99, is_premium=False, **kwargs):
+        self.id = int(id)
         self.username = username
-        self.is_premium = is_premium
-        self.on_clock = on_clock
-        self.nudges_balance = nudges_balance
-        self.lat = lat
-        self.lon = lon
-        self.last_nudge_time = last_nudge_time
-
-    def to_dict(self):
-        return vars(self)
+        self.age = age
+        self.gender = gender # "M", "F", "Non-binary"
+        self.interested_in = interested_in # "M", "F", "Both"
+        self.min_age = min_age
+        self.max_age = max_age
+        # ... rest of your variables (on_clock, nudges, etc.)
 
 # --- DATABASE TOOLS ---
 def save_to_db(users_list):
