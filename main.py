@@ -3,12 +3,15 @@ import time
 import random
 import asyncio
 import json
+from fastapi import FastAPI
+
+app = FastAPI()
 
 # --- THE USER BLUEPRINT ---
 class User:
     def __init__(self, id, username, is_premium=False, on_clock=False, 
                  nudges_balance=5, lat=0.0, lon=0.0, last_nudge_time=0):
-        self.id = id
+        self.id = int(id)  # Ensure ID is always an integer
         self.username = username
         self.is_premium = is_premium
         self.on_clock = on_clock
@@ -18,19 +21,16 @@ class User:
         self.last_nudge_time = last_nudge_time
 
     def to_dict(self):
-        """Converts user object to a dictionary for JSON saving"""
         return vars(self)
 
 # --- DATABASE TOOLS ---
 def save_to_db(users_list):
-    """Writes the current state of all users to the JSON file"""
     data = {"users": [u.to_dict() for u in users_list]}
     with open('users_db.json', 'w') as f:
         json.dump(data, f, indent=4)
-    print("💾 [DATABASE]: All changes saved to users_db.json")
+    print("💾 [DATABASE]: Sync complete.")
 
 def load_from_db():
-    """Reads users from the JSON file"""
     try:
         with open('users_db.json', 'r') as f:
             data = json.load(f)
@@ -38,68 +38,41 @@ def load_from_db():
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
-# --- THE SPAZZ ENGINE ---
-if __name__ == "__main__":
-    print("🚀 Spazz Engine Starting...")
-    
-    # Load users from your new database file
-    active_users = load_from_db()
-
-    # If the file is empty, create the OG users
-    if not active_users:
-        print("⚡ No users found. Initializing SpazzMaster and RizzQueen...")
-        u1 = User(1, "SpazzMaster_99", is_premium=True)
-        u2 = User(2, "RizzQueen", is_premium=False)
-        active_users = [u1, u2]
-        save_to_db(active_users)
-
-    # Let's simulate you CLOCKING IN
-    me = active_users[0]
-    me.on_clock = True
-    me.lat, me.lon = 40.7128, -74.0060 # Setting test coordinates
-    
-    print(f"✅ User {me.username} is now ON THE CLOCK at {me.lat}, {me.lon}")
-
-    # Save the status back to the database
-    save_to_db(active_users)
-    print("🏁 Session complete. Check your users_db.json file!")
-
-from fastapi import FastAPI
-
-app = FastAPI()
-
+# --- WEB ENDPOINTS ---
 @app.get("/")
 def home():
-    return {"message": "Spazz API is Live!"}
-
+    return {"status": "Spazz Engine Online", "docs": "/docs"}
 
 @app.get("/users")
 def get_users():
-    # We turn the objects back into a list of dictionaries for the web
     users = load_from_db()
     return [u.to_dict() for u in users]
 
 @app.post("/nudge/{sender_id}/{receiver_id}")
 def nudge_user(sender_id: int, receiver_id: int):
     users = load_from_db()
-    
-    # Find the sender and receiver in our list
     sender = next((u for u in users if u.id == sender_id), None)
     receiver = next((u for u in users if u.id == receiver_id), None)
 
     if not sender or not receiver:
-        return {"error": "User not found"}
+        return {"error": "User missing from database"}
 
-    if sender.nudges_balance <= 0:
-        return {"error": "Out of nudges! Wait for a refill or go Premium."}
+    if sender.nudges_balance <= 0 and not sender.is_premium:
+        return {"error": "No nudges left. Wait for refill or buy Premium!"}
 
-    # The Logic: Deduct from sender, maybe send a notification to receiver later
+    # Execute Nudge
     sender.nudges_balance -= 1
+    sender.last_nudge_time = time.time()
     
-    # Save the new balances to the JSON file
     save_to_db(users)
-    
-    return {
-        "message": f"{sender.username} nudged {receiver.username}!",
-        "remaining_nudges": sender.nudges_balance
-    }
+    return {"message": f"Nudge sent from {sender.username} to {receiver.username}!"}
+
+# --- LOCAL SIMULATOR ---
+if __name__ == "__main__":
+    active_users = load_from_db()
+    if not active_users:
+        u1 = User(1, "SpazzMaster_99", is_premium=True)
+        u2 = User(2, "RizzQueen", is_premium=False)
+        active_users = [u1, u2]
+        save_to_db(active_users)
+    print("🚀 Simulator mode active. Run 'uvicorn main:app --reload' for Web mode.")
