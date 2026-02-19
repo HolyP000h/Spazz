@@ -142,5 +142,54 @@ def claim_daily_reward(user_id: int):
     save_to_db(users)
     return {"message": "Credits added!"}
 
+@app.post("/move/{user_id}/{direction}")
+def move_user(user_id: int, direction: str):
+    users = load_from_db()
+    user = next((u for u in users if u.id == user_id), None)
+    
+    if not user:
+        return {"error": "User not found"}
+
+    # A "step" is about 100 feet in GPS coordinates
+    step = 0.0003 
+
+    if direction.lower() == "north":
+        user.lat += step
+    elif direction.lower() == "south":
+        user.lat -= step
+    elif direction.lower() == "east":
+        user.lon += step
+    elif direction.lower() == "west":
+        user.lon -= step
+    else:
+        return {"error": "Invalid direction. Use North, South, East, or West."}
+
+    save_to_db(users)
+    return {
+        "message": f"{user.username} moved {direction}",
+        "new_coords": {"lat": user.lat, "lon": user.lon}
+    }
+
+@app.post("/teleport/{user_id}")
+def teleport_user(user_id: int, lat: float, lon: float):
+    users = load_from_db()
+    user = next((u for u in users if u.id == user_id), None)
+    
+    if user:
+        user.lat = lat
+        user.lon = lon
+        save_to_db(users)
+        return {"message": f"{user.username} warped to new coordinates!"}
+    return {"error": "User not found"}
+
 if __name__ == "__main__":
+    # This part runs when you start the script
+    active_users = load_from_db()
+    if not active_users:
+        # Create two users near each other (Los Angeles area)
+        u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=1000)
+        u2 = User(2, "RizzQueen", 22, "F", "M", lat=34.0525, lon=-118.2440, credits=500)
+        save_to_db([u1, u2])
+        print("✅ Created test users: SpazzMaster_99 and RizzQueen")
+    
     print("🚀 Engine Ready. Run: uvicorn main:app --reload")
