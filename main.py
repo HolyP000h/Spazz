@@ -257,6 +257,33 @@ async def ghost_heartbeat():
         print("👻 [GHOST]: RizzQueen has shifted positions...")
         await asyncio.sleep(10) # Wait 10 seconds between moves
 
+# --- GHOST PROTOCOL (The AI Brain) ---
+
+def move_ghosts():
+    """Logic to actually shift the ghost coordinates in the DB."""
+    users = load_from_db()
+    moved = False
+    for user in users:
+        # We'll treat ID 2 (RizzQueen) as the ghost
+        if user.id == 2:
+            # Shift lat/lon by a random small amount
+            user.lat += random.uniform(-0.0005, 0.0005)
+            user.lon += random.uniform(-0.0005, 0.0005)
+            moved = True
+    
+    if moved:
+        save_to_db(users)
+        print("👻 [GHOST]: RizzQueen has wandered to a new spot.")
+
+async def ghost_heartbeat():
+    """The background loop that triggers every 10 seconds."""
+    while True:
+        try:
+            move_ghosts()
+        except Exception as e:
+            print(f"❌ [GHOST ERROR]: {e}")
+        await asyncio.sleep(10)        
+
 if __name__ == "__main__":
     # This now only triggers if you run 'python main.py' directly
     import uvicorn
