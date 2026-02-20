@@ -5,6 +5,18 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup_event():
+    print("🧪 [DIAGNOSTIC]: Checking for users...")
+    active_users = load_from_db()
+    if not active_users:
+        u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=1000)
+        u2 = User(2, "RizzQueen", 22, "F", "M", lat=34.0525, lon=-118.2440, credits=500)
+        save_to_db([u1, u2])
+        print("✨ [DIAGNOSTIC]: No users found. Generated SpazzMaster and RizzQueen.")
+    else:
+        print(f"✅ [DIAGNOSTIC]: {len(active_users)} users loaded and ready.")
+
 # --- THE SPAZZ SHOP CATALOG ---
 SPAZZ_CATALOG = {
     "basic_white": {"name": "Standard Strobe", "type": "Skin", "color": "#FFFFFF", "price": 0},
@@ -182,7 +194,7 @@ def teleport_user(user_id: int, lat: float, lon: float):
         return {"message": f"{user.username} warped to new coordinates!"}
     return {"error": "User not found"}
 
-import math
+
 
 @app.get("/radar/{user_id}")
 async def get_radar(user_id: int):
