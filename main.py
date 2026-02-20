@@ -224,15 +224,8 @@ async def get_radar(user_id: int):
         })
         
     return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
-
 if __name__ == "__main__":
-    # This part runs when you start the script
-    active_users = load_from_db()
-    if not active_users:
-        # Create two users near each other (Los Angeles area)
-        u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=1000)
-        u2 = User(2, "RizzQueen", 22, "F", "M", lat=34.0525, lon=-118.2440, credits=500)
-        save_to_db([u1, u2])
-        print("✅ Created test users: SpazzMaster_99 and RizzQueen")
-    
-    print("🚀 Engine Ready. Run: uvicorn main:app --reload")
+    # This now only triggers if you run 'python main.py' directly
+    import uvicorn
+    print("🚀 Engine starting in standalone mode...")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
