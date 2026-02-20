@@ -33,6 +33,7 @@ htmlcov/
 # 5. Database (Local)
 *.sqlite3
 db.sqlite3-journal
+users_db.json
 
 # 6. CI/CD & Security (GitHub Actions leftovers)
 .github/agents/
