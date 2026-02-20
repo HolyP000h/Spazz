@@ -243,7 +243,6 @@ async def get_radar(user_id: int):
         
     return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
 
-@app.on_event("startup")
 async def startup_event():
     # ... your existing user creation code ...
     
