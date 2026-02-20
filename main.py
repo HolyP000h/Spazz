@@ -224,6 +224,7 @@ async def get_radar(user_id: int):
         })
         
     return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
+
 if __name__ == "__main__":
     # This now only triggers if you run 'python main.py' directly
     import uvicorn
