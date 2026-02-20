@@ -78,10 +78,18 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
     return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a)))
 
+def get_bearing(lat1, lon1, lat2, lon2):
+    dlon = math.radians(lon2 - lon1)
+    y = math.sin(dlon) * math.cos(math.radians(lat2))
+    x = math.cos(math.radians(lat1)) * math.sin(math.radians(lat2)) - \
+        math.sin(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.cos(dlon)
+    bearing = (math.degrees(math.atan2(y, x)) + 360) % 360
+    directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    return directions[int((bearing + 22.5) // 45) % 8]
+
 # --- WEB ENDPOINTS ---
 
 @app.get("/")
-def home():
     return {"status": "Spazz Engine Online", "docs": "/docs"}
 
 @app.get("/users")
