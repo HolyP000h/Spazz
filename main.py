@@ -90,7 +90,7 @@ def get_bearing(lat1, lon1, lat2, lon2):
 # --- WEB ENDPOINTS ---
 
 @app.get("/")
-    return {"status": "Spazz Engine Online", "docs": "/docs"}
+def home():return {"status": "Spazz Engine Online", "docs": "/docs"}
 
 @app.get("/users")
 def get_users():
@@ -241,6 +241,19 @@ async def get_radar(user_id: int):
         })
         
     return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
+
+@app.on_event("startup")
+async def startup_event():
+    # ... your existing user creation code ...
+    
+    # Start the Ghost Protocol in the background
+    asyncio.create_task(ghost_heartbeat())
+
+async def ghost_heartbeat():
+    while True:
+        move_ghosts()
+        print("👻 [GHOST]: RizzQueen has shifted positions...")
+        await asyncio.sleep(10) # Wait 10 seconds between moves
 
 if __name__ == "__main__":
     # This now only triggers if you run 'python main.py' directly
