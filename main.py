@@ -182,6 +182,37 @@ def teleport_user(user_id: int, lat: float, lon: float):
         return {"message": f"{user.username} warped to new coordinates!"}
     return {"error": "User not found"}
 
+import math
+
+@app.get("/radar/{user_id}")
+async def get_radar(user_id: int):
+    users = load_from_db()
+    me = next((u for u in users if u.id == user_id), None)
+    
+    if not me:
+        return {"error": "User not found"}
+
+    radar_results = []
+    for user in users:
+        if user.id == me.id:
+            continue
+            
+        # Haversine Distance Calculation (Miles)
+        R = 3958.8 # Radius of Earth in miles
+        dlat = math.radians(user.lat - me.lat)
+        dlon = math.radians(user.lon - me.lon)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(me.lat)) * math.cos(math.radians(user.lat)) * math.sin(dlon/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        distance = R * c
+        
+        radar_results.append({
+            "username": user.username,
+            "distance_miles": round(distance, 2),
+            "status": "Target Locked" if distance < 5 else "Searching..."
+        })
+        
+    return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
+
 if __name__ == "__main__":
     # This part runs when you start the script
     active_users = load_from_db()
