@@ -7,7 +7,6 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.on_event("startup")
 async def startup_event():
     print("🧪 [DIAGNOSTIC]: Checking for users...")
     active_users = load_from_db()
