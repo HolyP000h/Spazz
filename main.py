@@ -6,10 +6,28 @@ import winsound
 import asyncio
 from fastapi import FastAPI
 
+from fastapi import FastAPI
+import asyncio  # Make sure this is here too!
+
+# 1. DEFINE the app first
 app = FastAPI()
 
+# 2. USE the app decorator second
+@app.on_event("startup")
 async def startup_event():
     print("🧪 [DIAGNOSTIC]: Checking for users...")
+    active_users = load_from_db()
+    
+    if not active_users:
+        # Create default user if DB is empty
+        u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=100)
+        save_to_db([u1])
+        print("✅ [DIAGNOSTIC]: Created default user.")
+        
+# 3. KICK OFF the ghost movement
+    asyncio.create_task(ghost_heartbeat())
+
+    # ... the rest of your code
     active_users = load_from_db()
     if not active_users:
         u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=1000)
@@ -129,7 +147,20 @@ def get_pulse(user_id: int, target_id: int):
     me = next((u for u in users if u.id == user_id), None)
     them = next((u for u in users if u.id == target_id), None)
     
+    # --- THE SAFETY CHECK ---
+    if me is None or them is None:
+        return {"error": "One or both users not found", "status": "offline"}
+
+    # Now Pylance knows 'me' and 'them' are safe to access
     dist = calculate_distance(me.lat, me.lon, them.lat, them.lon)
+    bearing = calculate_bearing(me.lat, me.lon, them.lat, them.lon)
+    
+    return {
+        "target": them.username,
+        "distance_miles": round(dist, 2),
+        "bearing_degrees": round(bearing, 0),
+        "status": "locked"
+    }
     
     # PULSE LOGIC: Distance in Miles
     if dist < 0.002: # ~10 feet
