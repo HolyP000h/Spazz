@@ -15,14 +15,20 @@ app = FastAPI()
 # 2. USE the app decorator second
 @app.on_event("startup")
 async def startup_event():
+    # Put EVERYTHING you want to happen at start in here
     print("🧪 [DIAGNOSTIC]: Checking for users...")
-    active_users = load_from_db()
     
+    # Check database
+    active_users = load_from_db()
     if not active_users:
-        # Create default user if DB is empty
-        u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=100)
-        save_to_db([u1])
-        print("✅ [DIAGNOSTIC]: Created default user.")
+        print("⚠️ No users found, creating defaults...")
+        # ... your creation logic ...
+
+    # Start the ghost movement task
+    import asyncio
+    asyncio.create_task(ghost_heartbeat())
+    
+    print("🚀 Engine fully initialized.")
         
 # 3. KICK OFF the ghost movement
     asyncio.create_task(ghost_heartbeat())
@@ -404,17 +410,7 @@ def get_radar(user_id: int):
         
     return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
 
-async def startup_event():
-    # ... your existing user creation code ...
-    
-    # Start the Ghost Protocol in the background
-    asyncio.create_task(ghost_heartbeat())
 
-async def ghost_heartbeat():
-    while True:
-        move_ghosts()
-        print("👻 [GHOST]: RizzQueen has shifted positions...")
-        await asyncio.sleep(10) # Wait 10 seconds between moves
 
 # --- GHOST PROTOCOL (The AI Brain) ---
 
