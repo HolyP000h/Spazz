@@ -261,17 +261,44 @@ def spawn_ghost(username: str):
     save_to_db(users)
     return {"message": f"Entity {username} materialized at {new_ghost.lat}, {new_ghost.lon}"}
 
+import time # Ensure this is at the VERY top of your file
+
 @app.post("/daily_reward/{user_id}")
 def claim_daily_reward(user_id: int):
-    users = load_from_db()
-    user = next((u for u in users if u.id == user_id), None)
+    # 1. Load the data
+    all_users = load_from_db() 
+    
+    # 2. Find the specific user (using a more explicit loop to help Pylance)
+    target_user = None
+    for u in all_users:
+        if isinstance(u, dict) and u.get("id") == user_id:
+            target_user = u
+            break
+    
+    if not target_user:
+        return {"error": "User not found"}
+
+    # 3. Time Logic
     now = time.time()
-    if now - user.last_reward_time < 86400:
-        return {"error": "Too soon!"}
-    user.credits += 50
-    user.last_reward_time = now
+    last_claim = target_user.get("last_reward_time", 0)
+    
+    if now - last_claim < 86400:
+        seconds_left = int(86400 - (now - last_claim))
+        hours_left = seconds_left // 3600
+        return {"error": f"Too soon! Try again in {hours_left} hours."}
+    
+    # 4. Update and Save
+    target_user["credits"] = target_user.get("credits", 0) + 50
+    target_user["last_reward_time"] = now
+    
+    save_to_db(all_users)
+    return {"message": "50 Credits added!", "new_balance": target_user["credits"]}
+    
+    user["credits"] = user.get("credits", 0) + 50
+    user["last_reward_time"] = now
+    
     save_to_db(users)
-    return {"message": "Credits added!"}
+    return {"message": "50 Credits added!", "new_balance": user["credits"]}
 
 @app.post("/move/{user_id}/{direction}")
 def move_user(user_id: int, direction: str):
