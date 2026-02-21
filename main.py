@@ -347,13 +347,19 @@ def get_radar(user_id: int):
     return {"nearby_spazzers": nearby}
 
     # ... existing distance calculation ...
-        bearing_label = get_bearing(me.lat, me.lon, user.lat, user.lon)
-        radar_results.append({
-            "username": user.username,
-            "distance_miles": round(distance, 2),
-            "direction": bearing_label, # <--- New field!
-            "status": "Target Locked" if distance < 5 else "Searching..."
-        })    
+
+    for user in users:
+        if user.id != me.id:
+            # All these lines must have the EXACT same starting gap (8 spaces)
+            distance = calculate_distance(me.lat, me.lon, user.lat, user.lon)
+            bearing_label = calculate_bearing(me.lat, me.lon, user.lat, user.lon)
+            
+            radar_results.append({
+                "username": user.username,
+                "distance_miles": round(distance, 2),
+                "direction": bearing_label,
+                "status": "Target Locked" if distance < 5 else "Searching..."
+            })
             
         # Haversine Distance Calculation (Miles)
         R = 3958.8 # Radius of Earth in miles
