@@ -1,13 +1,30 @@
 import math
 import time
 import json
-import random
-import winsound
 import asyncio
-from fastapi import FastAPI
+import random
 
+async def ghost_heartbeat():
+    print("💓 Ghost Heartbeat started...")
+    while True:
+        # 1. Load the list
+        all_signals = load_from_db()
+        
+        # 2. Make sure it's actually a list before looping
+        if isinstance(all_signals, list):
+            for ghost in all_signals:
+                # 3. Check that 'ghost' is a dictionary before touching it
+                if isinstance(ghost, dict) and "lat" in ghost:
+                    # These must be indented exactly 2 levels (8 spaces)
+                    ghost["lat"] += random.uniform(-0.0005, 0.0005)
+                    ghost["lon"] += random.uniform(-0.0005, 0.0005)
+        
+        # 4. Save (Back in line with the 'if isinstance' above)
+        save_to_db(all_signals)
+        await asyncio.sleep(30)
+
+import winsound
 from fastapi import FastAPI
-import asyncio  # Make sure this is here too!
 
 # 1. DEFINE the app first
 app = FastAPI()
