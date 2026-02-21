@@ -83,32 +83,46 @@ SPAZZ_CATALOG = {
 }
 
 # --- THE USER BLUEPRINT ---
-class User:
-    def __init__(self, id, username, age, gender, interested_in, 
-                 min_age=18, max_age=99, is_premium=False, 
-                 on_clock=False, nudges_balance=5, lat=0.0, lon=0.0, 
-                 last_nudge_time=0, blocked_users=None, 
-                 credits=0, inventory=None, active_skin="basic_white", 
-                 last_reward_time=0, **kwargs):
-        
-        self.id = int(id)
-        self.username = username
-        self.age = int(age)
-        self.gender = gender
-        self.interested_in = interested_in
-        self.min_age = int(min_age)
-        self.max_age = int(max_age)
-        self.is_premium = is_premium
-        self.on_clock = on_clock
-        self.nudges_balance = nudges_balance
-        self.lat = lat
-        self.lon = lon
-        self.last_nudge_time = last_nudge_time
-        self.blocked_users = blocked_users if blocked_users else []
-        self.credits = credits  
-        self.active_skin = active_skin 
-        self.inventory = inventory if inventory else ["basic_white"]
-        self.last_reward_time = last_reward_time
+def create_entity(entity_id, username, e_type="user", lat=0.0, lon=0.0):
+    return {
+        "id": str(entity_id),
+        "username": username,
+        "type": e_type, 
+        "mode": "vibe",
+        "credits": 0,
+        "lat": lat,
+        "lon": lon,
+        "pet": {
+            "name": f"{username}'s Buddy",
+            "type": "Starter Pet",
+            "aura": "White",
+            "level": 1
+        } if e_type == "user" else None 
+    }
+
+@app.on_event("startup")
+async def startup_event():
+    print("🧪 [DIAGNOSTIC]: Checking for users...")
+    active_users = load_from_db()
+    
+    if not active_users:
+        u1 = create_entity(1, "SpazzMaster_99", "user", 34.0522, -118.2437)
+        u2 = create_entity(2, "RizzQueen", "user", 34.0525, -118.2440)
+        save_to_db([u1, u2])
+        print("✨ [DIAGNOSTIC]: Generated fresh entities.")
+
+    asyncio.create_task(ghost_heartbeat())
+    print("🚀 Engine fully initialized.")
+    # ADD THIS PART SO ASSIGNMENT [] = WORK
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def to_dict(self):
+        return vars(self)
+
+    # ADD THIS PART SO ASSIGNMENT [] = WORK
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
     def to_dict(self):
         return vars(self)
