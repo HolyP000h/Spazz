@@ -316,17 +316,35 @@ def teleport_user(user_id: int, lat: float, lon: float):
 
 
 @app.get("/radar/{user_id}")
-async def get_radar(user_id: int):
+def get_radar(user_id: int):
     users = load_from_db()
     me = next((u for u in users if u.id == user_id), None)
     
     if not me:
-        return {"error": "User not found"}
+        return {"error": "User not found", "nearby_spazzers": []}
 
-    radar_results = []
+    nearby = []
     for user in users:
-        if user.id == me.id:
-            continue
+        if user.id != me.id:
+            dist = calculate_distance(me.lat, me.lon, user.lat, user.lon)
+            bearing = calculate_bearing(me.lat, me.lon, user.lat, user.lon)
+            
+            # Distance Logic for Pulse Speed
+            if dist < 0.05:
+                speed = 0.5  # Fast blink
+            elif dist < 0.2:
+                speed = 2.0  # Medium blink
+            else:
+                speed = 5.0  # Slow blink
+
+            nearby.append({
+                "username": user.username,
+                "distance_miles": round(dist, 4),
+                "bearing_degrees": round(bearing, 0),
+                "pulse": {"speed": speed}
+            })
+
+    return {"nearby_spazzers": nearby}
 
     # ... existing distance calculation ...
         bearing_label = get_bearing(me.lat, me.lon, user.lat, user.lon)
