@@ -6,20 +6,34 @@ import random
 
 async def ghost_heartbeat():
     print("💓 Ghost Heartbeat started...")
+    # Set your 'Home' coordinates here
+    HOME_LAT = 34.0522 
+    HOME_LON = -118.2437
+
     while True:
-        # 1. Load the list
         all_signals = load_from_db()
-        
-        # 2. Make sure it's actually a list before looping
-        if isinstance(all_signals, list):
-            for ghost in all_signals:
-                # 3. Check that 'ghost' is a dictionary before touching it
-                if isinstance(ghost, dict) and "lat" in ghost:
-                    # These must be indented exactly 2 levels (8 spaces)
-                    ghost["lat"] += random.uniform(-0.0005, 0.0005)
-                    ghost["lon"] += random.uniform(-0.0005, 0.0005)
-        
-        # 4. Save (Back in line with the 'if isinstance' above)
+        zombie_nearby = False
+
+        for ghost in all_signals:
+            # 1. Validation (This usually clears the red underline)
+            if not isinstance(ghost, dict) or "lat" not in ghost:
+                continue 
+
+            # 2. Movement logic
+            ghost["lat"] += random.uniform(-0.0005, 0.0005)
+            ghost["lon"] += random.uniform(-0.0005, 0.0005)
+
+            # 3. Distance math (Using explicit keys)
+            distance = math.sqrt((ghost["lat"] - HOME_LAT)**2 + (ghost["lon"] - HOME_LON)**2)
+            
+            if distance < 0.001:
+                zombie_nearby = True
+        # 3. If a zombie is close, play the groan on YOUR speakers
+        if zombie_nearby:
+            print("🧟 [ALERT]: A zombie is groaning nearby...")
+            # Play the sound from the file you downloaded
+            winsound.PlaySound("zombie.wav", winsound.SND_FILENAME | winsound.SND_ASYNC)
+
         save_to_db(all_signals)
         await asyncio.sleep(30)
 
