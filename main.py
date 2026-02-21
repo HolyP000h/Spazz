@@ -3,76 +3,76 @@ import time
 import json
 import asyncio
 import random
-
-async def ghost_heartbeat():
-    print("💓 Ghost Heartbeat started...")
-    # Set your 'Home' coordinates here
-    HOME_LAT = 34.0522 
-    HOME_LON = -118.2437
-
-    while True:
-        all_signals = load_from_db()
-        zombie_nearby = False
-
-        for ghost in all_signals:
-            # 1. Validation (This usually clears the red underline)
-            if not isinstance(ghost, dict) or "lat" not in ghost:
-                continue 
-
-            # 2. Movement logic
-            ghost["lat"] += random.uniform(-0.0005, 0.0005)
-            ghost["lon"] += random.uniform(-0.0005, 0.0005)
-
-            # 3. Distance math (Using explicit keys)
-            distance = math.sqrt((ghost["lat"] - HOME_LAT)**2 + (ghost["lon"] - HOME_LON)**2)
-            
-            if distance < 0.001:
-                zombie_nearby = True
-        # 3. If a zombie is close, play the groan on YOUR speakers
-        if zombie_nearby:
-            print("🧟 [ALERT]: A zombie is groaning nearby...")
-            # Play the sound from the file you downloaded
-            winsound.PlaySound("zombie.wav", winsound.SND_FILENAME | winsound.SND_ASYNC)
-
-        save_to_db(all_signals)
-        await asyncio.sleep(30)
-
 import winsound
 from fastapi import FastAPI
 
-# 1. DEFINE the app first
 app = FastAPI()
 
-# 2. USE the app decorator second
+# --- 1. HELPERS (Keep these at the top, outside functions) ---
+def create_entity(entity_id, username, e_type="user", lat=0.0, lon=0.0):
+    return {
+        "id": str(entity_id),
+        "username": username,
+        "type": e_type, 
+        "mode": "vibe",
+        "credits": 0,
+        "lat": lat,
+        "lon": lon,
+        "pet": {
+            "name": f"{username}'s Buddy",
+            "type": "Starter Pet",
+            "aura": "White",
+            "level": 1
+        } if e_type == "user" else None 
+    }
+
+# --- 2. THE HEARTBEAT (The background engine) ---
+async def ghost_heartbeat():
+    print("💓 Ghost Heartbeat is officially pumping...")
+    while True:
+        all_entities = load_from_db()
+        
+        # SPAWN LOGIC: Keep the map populated
+        if len(all_entities) < 3:
+            new_wisp = create_entity(f"wisp_{random.randint(1,99)}", "Golden Wisp", "wisp", 34.052, -118.243)
+            all_entities = load_from_db() # Pure and simple.
+            print("✨ [SPAWNER]: A Golden Wisp has appeared!")
+
+        for entity in all_entities:
+            # MOVEMENT
+            entity["lat"] += random.uniform(-0.0005, 0.0005)
+            entity["lon"] += random.uniform(-0.0005, 0.0005)
+
+            # ZOMBIE SOUND
+            if entity["type"] == "zombie":
+                # Only play if you have the file!
+                # winsound.PlaySound("zombie.wav", winsound.SND_FILENAME | winsound.SND_ASYNC)
+                pass
+
+        save_to_db(all_entities)
+        await asyncio.sleep(30)
+
+# --- 3. STARTUP EVENT (The ignition switch) ---
 @app.on_event("startup")
 async def startup_event():
-    # Put EVERYTHING you want to happen at start in here
     print("🧪 [DIAGNOSTIC]: Checking for users...")
     
-    # Check database
     active_users = load_from_db()
-    if not active_users:
-        print("⚠️ No users found, creating defaults...")
-        # ... your creation logic ...
-
-    # Start the ghost movement task
-    import asyncio
-    asyncio.create_task(ghost_heartbeat())
     
-    print("🚀 Engine fully initialized.")
-        
-# 3. KICK OFF the ghost movement
-    asyncio.create_task(ghost_heartbeat())
-
-    # ... the rest of your code
-    active_users = load_from_db()
+    # Generate defaults if DB is empty
     if not active_users:
-        u1 = User(1, "SpazzMaster_99", 25, "M", "F", lat=34.0522, lon=-118.2437, credits=1000)
-        u2 = User(2, "RizzQueen", 22, "F", "M", lat=34.0525, lon=-118.2440, credits=500)
+        # NEW WAY (Standard Dictionary)
+        u1 = create_entity(1, "SpazzMaster_99", "user", 34.0522, -118.2437)
+        u1["credits"] = 1000  # Now this works!
+        u2 = create_entity(2, "RizzQueen", "user", 34.0525, -118.2440)
         save_to_db([u1, u2])
-        print("✨ [DIAGNOSTIC]: No users found. Generated SpazzMaster and RizzQueen.")
+        print("✨ [DIAGNOSTIC]: Generated SpazzMaster and RizzQueen.")
     else:
-        print(f"✅ [DIAGNOSTIC]: {len(active_users)} users loaded and ready.")
+        print(f"✅ [DIAGNOSTIC]: {len(active_users)} entities loaded.")
+
+    # START the background task properly
+    asyncio.create_task(ghost_heartbeat())
+    print("🚀 Engine fully initialized and background tasks running.")
 
 # --- THE SPAZZ SHOP CATALOG ---
 SPAZZ_CATALOG = {
