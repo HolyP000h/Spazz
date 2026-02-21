@@ -2,6 +2,7 @@ import math
 import time
 import json
 import random
+import winsound
 import asyncio
 from fastapi import FastAPI
 
@@ -283,24 +284,25 @@ async def ghost_heartbeat():
 
 def move_ghosts():
     users = load_from_db()
+    me = next((u for u in users if u.id == 1), None)
     moved = False
+
     for user in users:
-        # ID 1 is usually YOU. Everyone else (Ghosts) should wander.
         if user.id != 1:
             user.lat += random.uniform(-0.0005, 0.0005)
             user.lon += random.uniform(-0.0005, 0.0005)
             moved = True
+            
+            # --- PROXIMITY CHECK ---
+            if me:
+                dist = calculate_distance(me.lat, me.lon, user.lat, user.lon)
+                if dist < 0.05:  # Closer than 0.05 miles (~260 feet)
+                    print(f"⚠️ [ALARM]: {user.username} is NEARBY! ({round(dist, 3)} mi)")
+                    # winsound.Beep(frequency, duration_ms)
+                    winsound.Beep(1000, 200) 
+    
     if moved:
         save_to_db(users)
-
-async def ghost_heartbeat():
-    """The background loop that triggers every 10 seconds."""
-    while True:
-        try:
-            move_ghosts()
-        except Exception as e:
-            print(f"❌ [GHOST ERROR]: {e}")
-        await asyncio.sleep(10)        
 
 if __name__ == "__main__":
     # This now only triggers if you run 'python main.py' directly
