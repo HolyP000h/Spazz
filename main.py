@@ -151,6 +151,30 @@ def buy_item(user_id: int, item_id: str):
         return {"message": f"Equipped {SPAZZ_CATALOG[item_id]['name']}!"}
     return {"error": "Purchase failed"}
 
+@app.post("/spawn/{username}")
+def spawn_ghost(username: str):
+    users = load_from_db()
+    
+    # Create a unique ID by finding the max ID and adding 1
+    new_id = max([u.id for u in users], default=0) + 1
+    
+    # Spawn near a base coordinate (or your current lat/lon)
+    # Adding a small random offset so they don't all stack on top of each other
+    new_ghost = User(
+        id=new_id,
+        username=username,
+        age=random.randint(18, 99),
+        gender="Ghost",
+        interested_in="All",
+        lat=34.0522 + random.uniform(-0.01, 0.01),
+        lon=-118.2437 + random.uniform(-0.01, 0.01),
+        credits=0
+    )
+    
+    users.append(new_ghost)
+    save_to_db(users)
+    return {"message": f"Entity {username} materialized at {new_ghost.lat}, {new_ghost.lon}"}
+
 @app.post("/daily_reward/{user_id}")
 def claim_daily_reward(user_id: int):
     users = load_from_db()
@@ -258,20 +282,16 @@ async def ghost_heartbeat():
 # --- GHOST PROTOCOL (The AI Brain) ---
 
 def move_ghosts():
-    """Logic to actually shift the ghost coordinates in the DB."""
     users = load_from_db()
     moved = False
     for user in users:
-        # We'll treat ID 2 (RizzQueen) as the ghost
-        if user.id == 2:
-            # Shift lat/lon by a random small amount
+        # ID 1 is usually YOU. Everyone else (Ghosts) should wander.
+        if user.id != 1:
             user.lat += random.uniform(-0.0005, 0.0005)
             user.lon += random.uniform(-0.0005, 0.0005)
             moved = True
-    
     if moved:
         save_to_db(users)
-        print("👻 [GHOST]: RizzQueen has wandered to a new spot.")
 
 async def ghost_heartbeat():
     """The background loop that triggers every 10 seconds."""
