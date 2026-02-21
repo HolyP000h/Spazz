@@ -91,6 +91,13 @@ def get_bearing(lat1, lon1, lat2, lon2):
 
 # --- WEB ENDPOINTS ---
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/ui", response_class=HTMLResponse)
+async def get_ui():
+    with open("index.html", "r") as f:
+        return f.read()
+
 @app.get("/")
 def home():return {"status": "Spazz Engine Online", "docs": "/docs"}
 

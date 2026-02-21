@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPAZZ RADAR: RED ALERT</title>
+    <style>
+        body { 
+            background: #000; color: #0f0; font-family: 'Courier New', monospace; 
+            display: flex; flex-direction: column; align-items: center; 
+            transition: background-color 0.5s ease;
+            margin-top: 50px;
+        }
+        #radar { 
+            width: 400px; height: 400px; border: 3px solid #0f0; border-radius: 50%; 
+            position: relative; background: radial-gradient(circle, #001100 0%, #000 80%); 
+            box-shadow: 0 0 20px #0f0; overflow: hidden;
+        }
+        .blip { 
+            width: 12px; height: 12px; background: #fff; border-radius: 50%; 
+            position: absolute; box-shadow: 0 0 15px #fff; transform: translate(-50%, -50%); 
+        }
+        .ghost { background: #f0f; box-shadow: 0 0 15px #f0f; }
+        .sweep { 
+            position: absolute; width: 50%; height: 2px; background: rgba(0, 255, 0, 0.5); 
+            top: 50%; left: 50%; transform-origin: left; animation: sweep 3s linear infinite; 
+        }
+        @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #stats { margin-top: 20px; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+    <h1>SYSTEM STATUS: SCANNING</h1>
+    <div id="radar">
+        <div class="sweep"></div>
+        <div class="blip" style="top:50%; left:50%; background: #0f0;"></div> </div>
+    <p id="stats">INITIALIZING SENSORS...</p>
+
+    <script>
+        async function updateRadar() {
+            try {
+                // We're assuming your user_id is 1
+                const response = await fetch('/radar/1');
+                const data = await response.json();
+                const radarElement = document.getElementById('radar');
+                const body = document.body;
+                
+                // Clear old ghost blips
+                document.querySelectorAll('.ghost').forEach(el => el.remove());
+
+                let alertActive = false;
+
+                data.nearby_spazzers.forEach(ghost => {
+                    const blip = document.createElement('div');
+                    blip.className = 'blip ghost';
+                    
+                    // Visual mapping: adjust 'scale' to zoom in/out
+                    const scale = 1500; 
+                    const offsetX = (ghost.distance_miles * scale); 
+                    
+                    // We'll place them on the X-axis for now based on distance
+                    // (True X/Y would require bearing math, but this proves it works!)
+                    blip.style.left = (200 + offsetX) + 'px';
+                    blip.style.top = (200 + (Math.random() * 20 - 10)) + 'px'; 
+                    radarElement.appendChild(blip);
+
+                    if (ghost.distance_miles < 0.05) alertActive = true;
+                });
+
+                if (alertActive) {
+                    body.style.backgroundColor = "#440000"; 
+                    document.querySelector('h1').innerText = "⚠️ PROXIMITY ALERT ⚠️";
+                    document.querySelector('h1').style.color = "#ff0000";
+                } else {
+                    body.style.backgroundColor = "#000";
+                    document.querySelector('h1').innerText = "SYSTEM STATUS: SCANNING";
+                    document.querySelector('h1').style.color = "#0f0";
+                }
+
+                document.getElementById('stats').innerText = `SIGNALS DETECTED: ${data.nearby_spazzers.length}`;
+            } catch (e) {
+                console.error("Radar Sync Error:", e);
+            }
+        }
+        setInterval(updateRadar, 2000);
+    </script>
+</body>
+</html>
