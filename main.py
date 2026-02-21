@@ -107,6 +107,25 @@ def get_bearing(lat1, lon1, lat2, lon2):
     directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     return directions[int((bearing + 22.5) // 45) % 8]
 
+import math
+
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    """
+    Calculates the bearing (direction) between two points.
+    Returns degrees from 0 to 360.
+    """
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    y = math.sin(delta_lambda) * math.cos(phi2)
+    x = math.cos(phi1) * math.sin(phi2) - \
+        math.sin(phi1) * math.cos(phi2) * math.cos(delta_lambda)
+
+    theta = math.atan2(y, x)
+    # Convert radians to degrees and normalize to 0-360
+    return (math.degrees(theta) + 360) % 360
+
 # --- WEB ENDPOINTS ---
 
 from fastapi.responses import HTMLResponse
@@ -146,6 +165,34 @@ def get_pulse(user_id: int, target_id: int):
     users = load_from_db()
     me = next((u for u in users if u.id == user_id), None)
     them = next((u for u in users if u.id == target_id), None)
+    
+    if me is None or them is None:
+        return {"error": "One or both users not found", "status": "offline"}
+
+    dist = calculate_distance(me.lat, me.lon, them.lat, them.lon)
+    bearing = calculate_bearing(me.lat, me.lon, them.lat, them.lon)
+    
+    # --- PULSE LOGIC: Determining the Vibe ---
+    if dist < 0.002: # ~10 feet
+        pulse_status = {"mode": "STROBE", "vibe": "SOLID", "speed": 0}
+    elif dist < 0.05: # Close
+        pulse_status = {"mode": "PULSE", "vibe": "FAST", "speed": 0.5}
+    elif dist < 0.2: # Getting warmer
+        pulse_status = {"mode": "PULSE", "vibe": "MEDIUM", "speed": 2.0}
+    else: # Cold
+        pulse_status = {"mode": "PULSE", "vibe": "SLOW", "speed": 5.0}
+        
+    skin = SPAZZ_CATALOG.get(them.active_skin, SPAZZ_CATALOG["basic_white"])
+
+    # ONE FINAL RETURN with everything combined
+    return {
+        "target": them.username,
+        "distance_miles": round(dist, 4),
+        "bearing_degrees": round(bearing, 0),
+        "pulse": pulse_status,
+        "target_skin": skin,
+        "status": "locked"
+    }
     
     # --- THE SAFETY CHECK ---
     if me is None or them is None:
