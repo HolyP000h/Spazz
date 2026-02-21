@@ -312,7 +312,7 @@ def move_ghosts():
         save_to_db(users)
 
 if __name__ == "__main__":
-    # This now only triggers if you run 'python main.py' directly
     import uvicorn
     print("🚀 Engine starting in standalone mode...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Change 8000 to 8001
+    uvicorn.run(app, host="0.0.0.0", port=8001)
