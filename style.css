@@ -1,0 +1,15 @@
+/* The Red Whisp Style */
+.whisp-red {
+    color: #ff0000; /* Pure Red */
+    font-weight: bold;
+    text-decoration: underline;
+    text-decoration-color: #ff4d4d; /* Brighter red underline */
+    text-shadow: 0 0 10px #ff0000; /* Neon glow */
+    animation: flicker 0.5s infinite secondary;
+}
+
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
