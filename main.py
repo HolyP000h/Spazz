@@ -6,6 +6,12 @@ import random
 import winsound
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+async def read_items():
+    with open("index.html", "r") as f:
+        return f.read()
+
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
