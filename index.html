@@ -149,10 +149,10 @@
         </div>
         
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button id="lock-btn" onclick="toggleLock()" style="background: rgba(255,255,255,0.1); border: 1px solid #fff; color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; width: 45%;">
+            <button id="lock-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #fff; color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; width: 45%;">
                 🔒 LOCK ON
             </button>
-            <button id="meet-btn" onclick="meetUser()" style="background: var(--spazz-purple); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; width: 45%;">
+            <button id="meet-btn" style="background: var(--spazz-purple); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; width: 45%;">
                 🤝 MEET
             </button>
         </div>
@@ -163,21 +163,31 @@
         const core = document.getElementById('core');
         const statusText = document.getElementById('status');
         const card = document.getElementById('discovery-card');
+        const apiPort = "8001"; // Port matched from main.py
         
         let lockedUserId = null;
         let currentNearbyUserId = null;
 
+        // Set up event listeners securely
+        document.getElementById('meet-btn').addEventListener('click', meetUser);
+        document.getElementById('lock-btn').addEventListener('click', toggleLock);
+
         async function updateApp() {
             try {
-                const res = await fetch('http://127.0.0.1:8000/users');
+                // Fetch from the correct port
+                const res = await fetch(`http://127.0.0.1:${apiPort}/users`);
                 const users = await res.json();
-                const me = users.find(u => u.id === userId);
+                
+                // Find yourself
+                const me = users.find(u => String(u.id) === userId);
+                if (!me) return;
                 
                 let closestDist = 999;
                 let nearbyUser = null;
 
+                // Check proximity to others
                 users.forEach(u => {
-                    if (u.id !== userId && u.type !== "wisp") {
+                    if (String(u.id) !== userId && u.type !== "wisp") {
                         const d = Math.sqrt(Math.pow(u.lat - me.lat, 2) + Math.pow(u.lon - me.lon, 2));
                         if (d < closestDist) {
                             closestDist = d;
@@ -189,8 +199,8 @@
                 // VISUAL & LOCK LOGIC
                 if (nearbyUser && closestDist < 0.001) {
                     
-                    if (!lockedUserId || nearbyUser.id === lockedUserId) {
-                        currentNearbyUserId = nearbyUser.id;
+                    if (!lockedUserId || String(nearbyUser.id) === lockedUserId) {
+                        currentNearbyUserId = String(nearbyUser.id);
                         core.classList.add('spazzing');
                         statusText.innerText = "Entity Detected";
                         statusText.style.color = "#ff0033";
@@ -212,8 +222,10 @@
                         // Reset card to blind state
                         document.getElementById('blind-content').style.display = 'block';
                         document.getElementById('revealed-content').style.display = 'none';
-                        document.getElementById('meet-btn').innerText = "🤝 MEET";
-                        document.getElementById('meet-btn').setAttribute("onclick", "meetUser()");
+                        const meetBtn = document.getElementById('meet-btn');
+                        meetBtn.innerText = "🤝 MEET";
+                        meetBtn.removeEventListener('click', sendPing);
+                        meetBtn.addEventListener('click', meetUser);
                     }
                 }
 
@@ -226,7 +238,8 @@
             document.getElementById('revealed-content').style.display = 'block';
             const meetBtn = document.getElementById('meet-btn');
             meetBtn.innerText = "SEND PING";
-            meetBtn.setAttribute("onclick", "sendPing()");
+            meetBtn.removeEventListener('click', meetUser);
+            meetBtn.addEventListener('click', sendPing);
             
             if (navigator.vibrate) {
                 navigator.vibrate([200, 100, 200]);
@@ -260,7 +273,7 @@
             if (e.key === "ArrowRight") dir = "east";
             
             if (dir) {
-                await fetch(`http://127.0.0.1:8000/move/${userId}/${dir}`, {method: 'POST'});
+                await fetch(`http://127.0.0.1:${apiPort}/move/${userId}/${dir}`, {method: 'POST'});
                 updateApp();
             }
         });
