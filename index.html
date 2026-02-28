@@ -1,93 +1,206 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SPAZZ RADAR: POLAR TRACKING</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPAZZ | Stealth</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            background: #000; color: #0f0; font-family: 'Courier New', monospace; 
-            display: flex; flex-direction: column; align-items: center; 
-            transition: background-color 0.5s ease; margin-top: 50px;
+        :root {
+            --spazz-purple: #bc13fe;
+            --spazz-red: #ff0033;
+            --bg-dark: #050505;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
             overflow: hidden;
         }
-        #radar { 
-            width: 400px; height: 400px; border: 3px solid #0f0; border-radius: 50%; 
-            position: relative; background: radial-gradient(circle, #001100 0%, #000 80%); 
-            box-shadow: 0 0 20px #0f0;
-        }
-        /* The sweeping line */
-        .sweep { 
-            position: absolute; width: 50%; height: 2px; background: rgba(0, 255, 0, 0.3); 
-            top: 50%; left: 50%; transform-origin: left; animation: sweep 4s linear infinite; 
-        }
-        /* Ghost Blips */
-        .blip { 
-            width: 12px; height: 12px; border-radius: 50%; position: absolute; 
-            transform: translate(-50%, -50%); transition: all 0.5s ease;
-        }
-        .ghost { background: #f0f; box-shadow: 0 0 15px #f0f; animation: pulse-blink 1s infinite; }
-        
-        @keyframes sweep { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
-        @keyframes pulse-blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        #stats { margin-top: 20px; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; }
+        /* The Animated Pulse Background */
+        .pulse-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pulse-core {
+            width: 150px;
+            height: 150px;
+            background: var(--spazz-purple);
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.4;
+            animation: breathe 4s infinite ease-in-out;
+        }
+
+        .inner-ring {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border: 1px solid rgba(188, 19, 254, 0.2);
+            border-radius: 50%;
+            animation: spin 10s linear infinite;
+        }
+
+        .logo-text {
+            position: absolute;
+            font-weight: 700;
+            letter-spacing: 8px;
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 20px var(--spazz-purple);
+        }
+
+        /* Discovery Card (Hidden by default) */
+        #discovery-card {
+            position: fixed;
+            bottom: -300px;
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 20px;
+            transition: bottom 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+
+        #discovery-card.active {
+            bottom: 40px;
+        }
+
+        .user-tag {
+            display: inline-block;
+            background: rgba(188, 19, 254, 0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            margin: 5px;
+            border: 1px solid var(--spazz-purple);
+        }
+
+        .status-label {
+            margin-top: 50px;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: var(--spazz-purple);
+            text-transform: uppercase;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* "Spazzing" state for when someone is close */
+        .spazzing {
+            animation: alert 0.2s infinite !important;
+            background: var(--spazz-red) !important;
+            filter: blur(20px) !important;
+        }
+
+        @keyframes alert {
+            0% { transform: scale(1.1); }
+            100% { transform: scale(1.2); }
+        }
     </style>
 </head>
 <body>
-    <h1 id="status-text">SYSTEM STATUS: SCANNING</h1>
-    <div id="radar">
-        <div class="sweep"></div>
-        <div class="blip" style="top:50%; left:50%; background: #0f0; box-shadow: 0 0 10px #0f0;"></div>
+
+    <div class="pulse-container">
+        <div class="inner-ring"></div>
+        <div id="core" class="pulse-core"></div>
+        <div class="logo-text">SPAZZ</div>
     </div>
-    <p id="stats">INITIALIZING SENSORS...</p>
+
+    <div class="status-label" id="status">Scanning the Void...</div>
+
+    <div id="discovery-card">
+        <h2 id="username">Unknown Entity</h2>
+        <div id="tags">
+            <span class="user-tag">#NEON</span>
+            <span class="user-tag">#SPAZZ</span>
+        </div>
+        <p style="font-size: 0.8rem; opacity: 0.7;">Is nearby and looking to Spazz.</p>
+        <button style="background: var(--spazz-purple); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer;">SEND PING</button>
+    </div>
 
     <script>
-        async function updateRadar() {
+        const userId = "1"; // Your ID
+        const core = document.getElementById('core');
+        const statusText = document.getElementById('status');
+        const card = document.getElementById('discovery-card');
+
+        async function updateApp() {
             try {
-                // Fetching the list of nearby ghosts
-                const response = await fetch('/radar/1');
-                const data = await response.json();
-                const radarElement = document.getElementById('radar');
-                const centerX = 200;
-                const centerY = 200;
+                const res = await fetch('http://127.0.0.1:8000/users');
+                const users = await res.json();
+                const me = users.find(u => u.id === userId);
                 
-                document.querySelectorAll('.ghost').forEach(el => el.remove());
+                let closestDist = 999;
+                let nearbyUser = null;
 
-                let alertActive = false;
-
-                data.nearby_spazzers.forEach(ghost => {
-                    const blip = document.createElement('div');
-                    blip.className = 'blip ghost';
-                    
-                    // --- THE POLAR MATH ---
-                    // Distance mapped to radius (0.1 miles = 190 pixels)
-                    const radius = Math.min(ghost.distance_miles * 1900, 190); 
-                    // Bearing mapped to angle (Adjusted so 0° is North)
-                    const angleRad = (ghost.bearing_degrees - 90) * (Math.PI / 180);
-
-                    const x = centerX + radius * Math.cos(angleRad);
-                    const y = centerY + radius * Math.sin(angleRad);
-                    
-                    blip.style.left = x + 'px';
-                    blip.style.top = y + 'px';
-                    
-                    if (ghost.distance_miles < 0.05) alertActive = true;
-                    radarElement.appendChild(blip);
+                users.forEach(u => {
+                    if (u.id !== userId && u.type !== "wisp") {
+                        const d = Math.sqrt(Math.pow(u.lat - me.lat, 2) + Math.pow(u.lon - me.lon, 2));
+                        if (d < closestDist) {
+                            closestDist = d;
+                            nearbyUser = u;
+                        }
+                    }
                 });
 
-                // Visual Alert Logic
-                if (alertActive) {
-                    document.body.style.backgroundColor = "#330000";
-                    document.getElementById('status-text').innerText = "⚠️ PROXIMITY ALERT ⚠️";
+                // VISUAL FEEDBACK
+                if (closestDist < 0.0008) { // Someone is close!
+                    core.classList.add('spazzing');
+                    statusText.innerText = "Entity Detected";
+                    statusText.style.color = "#ff0033";
+                    
+                    // Show Card
+                    document.getElementById('username').innerText = nearbyUser.username;
+                    card.classList.add('active');
                 } else {
-                    document.body.style.backgroundColor = "#000";
-                    document.getElementById('status-text').innerText = "SYSTEM STATUS: SCANNING";
+                    core.classList.remove('spazzing');
+                    statusText.innerText = "Scanning the Void...";
+                    statusText.style.color = "#bc13fe";
+                    card.classList.remove('active');
                 }
 
-                document.getElementById('stats').innerText = `SIGNALS: ${data.nearby_spazzers.length}`;
-            } catch (e) { console.error("Radar Error:", e); }
+            } catch (e) { console.log("Engine offline..."); }
         }
 
-        setInterval(updateRadar, 2000);
+        // Movement Controls (Still works for testing!)
+        window.addEventListener('keydown', async (e) => {
+            let dir = "";
+            if (e.key === "ArrowUp") dir = "north";
+            if (e.key === "ArrowDown") dir = "south";
+            if (e.key === "ArrowLeft") dir = "west";
+            if (e.key === "ArrowRight") dir = "east";
+            
+            if (dir) {
+                await fetch(`http://127.0.0.1:8000/move/${userId}/${dir}`, {method: 'POST'});
+                updateApp();
+            }
+        });
+
+        setInterval(updateApp, 1000);
     </script>
 </body>
 </html>
