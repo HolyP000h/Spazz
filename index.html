@@ -266,15 +266,26 @@
 
         // Movement Controls
         window.addEventListener('keydown', async (e) => {
-            let dir = "";
-            if (e.key === "ArrowUp") dir = "north";
-            if (e.key === "ArrowDown") dir = "south";
-            if (e.key === "ArrowLeft") dir = "west";
-            if (e.key === "ArrowRight") dir = "east";
+            // 1. Get current position from your data
+            const res = await fetch(`http://127.0.0.1:${apiPort}/users`);
+            const users = await res.json();
+            const me = users.find(u => String(u.id) === userId);
+            if (!me) return;
+
+            let newLat = me.lat;
+            let newLon = me.lon;
+            const step = 0.0001; // Step size
+
+            // 2. Calculate new position
+            if (e.key === "ArrowUp") newLat += step;
+            if (e.key === "ArrowDown") newLat -= step;
+            if (e.key === "ArrowLeft") newLon -= step;
+            if (e.key === "ArrowRight") newLon += step;
             
-            if (dir) {
-                await fetch(`http://127.0.0.1:${apiPort}/move/${userId}/${dir}`, {method: 'POST'});
-                updateApp();
+            // 3. Send new position to backend
+            if (newLat !== me.lat || newLon !== me.lon) {
+                await fetch(`http://127.0.0.1:${apiPort}/teleport/${userId}?lat=${newLat}&lon=${newLon}`, {method: 'POST'});
+                updateApp(); // Refresh radar
             }
         });
 
