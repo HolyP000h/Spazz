@@ -43,12 +43,6 @@ async def ghost_heartbeat():
             entity["lat"] += random.uniform(-0.0005, 0.0005)
             entity["lon"] += random.uniform(-0.0005, 0.0005)
 
-            # ZOMBIE SOUND
-            if entity["type"] == "zombie":
-                # Only play if you have the file!
-                # winsound.PlaySound("zombie.wav", winsound.SND_FILENAME | winsound.SND_ASYNC)
-                pass
-
         save_to_db(all_entities)
         await asyncio.sleep(30)
 
@@ -351,33 +345,6 @@ def claim_daily_reward(user_id: int):
     save_to_db(users)
     return {"message": "50 Credits added!", "new_balance": user["credits"]}
 
-@app.post("/move/{user_id}/{direction}")
-def move_user(user_id: int, direction: str):
-    users = load_from_db()
-    user = next((u for u in users if u.id == user_id), None)
-    
-    if not user:
-        return {"error": "User not found"}
-
-    # A "step" is about 100 feet in GPS coordinates
-    step = 0.0003 
-
-    if direction.lower() == "north":
-        user.lat += step
-    elif direction.lower() == "south":
-        user.lat -= step
-    elif direction.lower() == "east":
-        user.lon += step
-    elif direction.lower() == "west":
-        user.lon -= step
-    else:
-        return {"error": "Invalid direction. Use North, South, East, or West."}
-
-    save_to_db(users)
-    return {
-        "message": f"{user.username} moved {direction}",
-        "new_coords": {"lat": user.lat, "lon": user.lon}
-    }
 
 @app.post("/teleport/{user_id}")
 def teleport_user(user_id: int, lat: float, lon: float):
@@ -455,6 +422,53 @@ def get_radar(user_id: int):
         
     return {"my_location": f"{me.lat}, {me.lon}", "nearby_spazzers": radar_results}
 
+# --- UPDATE THIS FUNCTION IN main.py ---
+@app.post("/move/{user_id}/{direction}")
+def move_user(user_id: str, direction: str, lock_on_id: str = None):
+    entities = load_db()
+    user = next((u for u in entities if str(u["id"]) == user_id), None)
+    
+    if user:
+        step = 0.0001
+        if "north" in direction: user["lat"] += step
+        if "south" in direction: user["lat"] -= step
+        if "east" in direction:  user["lon"] += step
+        if "west" in direction:  user["lon"] -= step
+
+        # --- PROXIMITY SPAZZ LOGIC ---
+        for e in entities:
+            # SAFETY CHECK
+            if not e or "id" not in e or str(e["id"]) == str(user_id): 
+                continue
+            
+            # CHECK IF TARGET IS LOCKED
+            is_locked = lock_on_id and str(e["id"]) == str(lock_on_id)
+            
+            # CHECK IF TARGET IS RED
+            is_red = (e.get("wisp_class") == "whisp-red-underlined" or 
+                      e.get("skin") == "underlined-red")
+            
+            # BEEP IF LOCKED OR IF ANY RED IS NEARBY
+            if is_locked or (not lock_on_id and is_red):
+                dist = math.sqrt((user["lat"] - e["lat"])**2 + (user["lon"] - e["lon"])**2)
+                
+                if dist < 0.001:
+                    # Formula: Closer = Higher Pitch
+                    # 
+                    frequency = int(1000 + (1 / (dist + 0.0001) * 0.15))
+                    frequency = min(max(frequency, 500), 3000)
+                    
+                    # TURBO FEEDBACK: Beep faster if locked on
+                    beep_duration = 50 if is_locked else 80
+                    
+                    try:
+                        winsound.Beep(frequency, beep_duration)
+                    except:
+                        pass 
+
+        save_to_db(entities)
+        return {"status": "success", "credits": user.get("credits", 0)}
+    return {"status": "error"}
 
 
 # --- GHOST PROTOCOL (The AI Brain) ---
