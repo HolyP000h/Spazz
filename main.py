@@ -13,6 +13,11 @@ from typing import List, Optional
 # 1. Create the app instance FIRST
 app = FastAPI()
 
+@app.get("/")
+async def read_index():
+    with open("index.html", "r") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
 # 2. Add CORS middleware (crucial for local testing)
 app.add_middleware(
     CORSMiddleware,
