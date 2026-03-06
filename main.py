@@ -23,6 +23,11 @@ except ImportError:
 
 app = FastAPI()
 
+from fastapi.staticfiles import StaticFiles
+
+# This tells the engine: "If a request starts with /static, look in the static folder"
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
