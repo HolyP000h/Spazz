@@ -1,0 +1,41 @@
+# --- Spazz Project Standard Gitignore ---
+
+# 1. Private Secrets (Crucial)
+.env
+.envrc
+*.log
+
+# 2. Python Environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# 3. Development Tools
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 4. Testing & Coverage
+.tox/
+.coverage
+.pytest_cache/
+nosetests.xml
+coverage.xml
+htmlcov/
+
+# 5. Database (Local)
+*.sqlite3
+db.sqlite3-journal
+users_db.json
+
+# 6. CI/CD & Security (GitHub Actions leftovers)
+.github/agents/
+*.manifest
+*.spec

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPAZZ | Stealth</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="pulse-container">
+        <div class="inner-ring"></div>
+        <div id="core" class="pulse-core"></div>
+        <div class="logo-text">SPAZZ</div>
+    </div>
+
+    <div class="status-label" id="status">Scanning the Void...</div>
+
+    <div id="discovery-card">
+        <div id="blind-content">
+            <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255,255,255,0.3);">
+                👤
+            </div>
+            <h2 style="font-size: 1.2rem; letter-spacing: 2px; color: #aaa;">UNKNOWN ENTITY</h2>
+            <p style="font-size: 0.8rem; opacity: 0.7; margin: 15px 0;">Get closer to unlock this profile.</p>
+        </div>
+
+        <div id="revealed-content" style="display: none;">
+            <h2 id="username">Unknown Entity</h2>
+            <div id="tags">
+                <span class="user-tag">#NEON</span>
+                <span class="user-tag">#SPAZZ</span>
+            </div>
+            <p style="font-size: 0.8rem; opacity: 0.7; margin: 15px 0;">Signal locked. Connect?</p>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <button id="lock-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #fff; color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; width: 45%;">
+                🔒 LOCK ON
+            </button>
+            <button id="meet-btn" style="background: var(--spazz-purple); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; width: 45%;">
+                🤝 MEET
+            </button>
+        </div>
+    </div>
+
+    <script src="/static/js/radar.js"></script>
+</body>
+</html>
