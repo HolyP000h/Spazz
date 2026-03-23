@@ -1,0 +1,23 @@
+/* 1. Make the body transparent so the map is visible */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: transparent !important; /* This is the key! */
+    overflow: hidden;
+}
+
+/* 2. Force the map to fill the entire screen behind the UI */
+#map {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1; /* Puts the map in the absolute background */
+}
+
+/* 3. Ensure your UI container doesn't have a black background */
+.pulse-container, .discovery-card {
+    background: rgba(0, 0, 0, 0.7); /* Semi-transparent black */
+    backdrop-filter: blur(10px); /* Makes the map look blurry behind the UI */
+}
