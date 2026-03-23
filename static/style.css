@@ -1,11 +1,19 @@
 /* 1. Global Setup */
-body {
+/* This forces the map to actually take up space */
+html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #000;
-    color: #fff;
-    overflow: hidden;
-    font-family: 'Inter', 'Courier New', monospace;
+    background-color: black;
+}
+
+#map {
+    height: 100vh; /* 100% of the Viewport Height */
+    width: 100vw;  /* 100% of the Viewport Width */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
 }
 
 /* 2. The Map (The Foundation) */
