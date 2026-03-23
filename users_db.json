@@ -1,80 +1,82 @@
-[
+{
+  "users": [
     {
-        "id": "1",
-        "username": "Spazzmaster",
-        "type": "user",
-        "credits": 500,
-        "is_premium": true,
-        "gender": "male",
-        "looking_for": "female",
-        "color": "#1A1A2E",
-        "border": "neon-gold",
-        "bio": "Founder. Stealth Mode."
+      "id": "1",
+      "username": "Spazzmaster",
+      "type": "user",
+      "credits": 500,
+      "is_premium": true,
+      "gender": "male",
+      "looking_for": "female",
+      "color": "#1A1A2E",
+      "border": "neon-gold",
+      "bio": "Founder. Stealth Mode."
     },
     {
-        "id": "2",
-        "username": "Rizzqueen",
-        "type": "user",
-        "credits": 100,
-        "is_premium": false,
-        "gender": "female",
-        "looking_for": "male",
-        "color": "#FF69B4",
-        "border": "none",
-        "bio": "Searching for a King."
+      "id": "2",
+      "username": "Rizzqueen",
+      "type": "user",
+      "credits": 100,
+      "is_premium": false,
+      "gender": "female",
+      "looking_for": "male",
+      "color": "#FF69B4",
+      "border": "none",
+      "bio": "Searching for a King."
     },
     {
-        "id": "3",
-        "username": "Alpha_Omega",
-        "type": "user",
-        "credits": 300,
-        "is_premium": true,
-        "gender": "male",
-        "looking_for": "male",
-        "color": "#0F056B",
-        "border": "neon-cyan",
-        "bio": "Gym. Code. Crypto."
+      "id": "3",
+      "username": "Alpha_Omega",
+      "type": "user",
+      "credits": 300,
+      "is_premium": true,
+      "gender": "male",
+      "looking_for": "male",
+      "color": "#0F056B",
+      "border": "neon-cyan",
+      "bio": "Gym. Code. Crypto."
     },
     {
-        "id": "4",
-        "username": "Neon_Vixen",
-        "type": "user",
-        "credits": 450,
-        "is_premium": true,
-        "gender": "female",
-        "looking_for": "female",
-        "color": "#FF00FF",
-        "border": "neon-pink-ring",
-        "bio": "Girls trip only. Neon dreams."
+      "id": "4",
+      "username": "Neon_Vixen",
+      "type": "user",
+      "credits": 450,
+      "is_premium": true,
+      "gender": "female",
+      "looking_for": "female",
+      "color": "#FF00FF",
+      "border": "neon-pink-ring",
+      "bio": "Girls trip only. Neon dreams."
     },
     {
-        "id": "5",
-        "username": "Midnight_Man",
-        "type": "user",
-        "credits": 50,
-        "is_premium": false,
-        "gender": "male",
-        "looking_for": "any",
-        "color": "#2C3E50",
-        "border": "none",
-        "bio": "Night owl."
+      "id": "5",
+      "username": "Midnight_Man",
+      "type": "user",
+      "credits": 50,
+      "is_premium": false,
+      "gender": "male",
+      "looking_for": "any",
+      "color": "#2C3E50",
+      "border": "none",
+      "bio": "Night owl."
     },
     {
-        "id": "wisp_5",
-        "username": "Common Wisp",
-        "type": "wisp",
-        "credits": 5,
-        "lat": 34.05205,
-        "lon": -118.24305,
-        "wisp_class": "whisp-cyan"
+      "id": "wisp_5",
+      "username": "Common Wisp",
+      "type": "wisp",
+      "credits": 5,
+      "lat": 34.05205,
+      "lon": -118.24305,
+      "wisp_class": "whisp-cyan"
     },
     {
-        "id": "wisp_50",
-        "username": "ULTRA Wisp",
-        "type": "wisp",
-        "credits": 50,
-        "lat": 34.0517,
-        "lon": -118.2438,
-        "wisp_class": "whisp-red-glow"
+      "id": "wisp_50",
+      "username": "ULTRA Wisp",
+      "type": "wisp",
+      "credits": 50,
+      "lat": 34.0517,
+      "lon": -118.2438,
+      "wisp_class": "whisp-red-glow"
     }
-]
+  ]
+}
