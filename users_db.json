@@ -7,10 +7,11 @@
       "credits": 500,
       "is_premium": true,
       "gender": "male",
-      "looking_for": "female",
+      "lat": 39.3331,
+      "lon": -82.9824,
       "color": "#1A1A2E",
       "border": "neon-gold",
-      "bio": "Founder. Stealth Mode."
+      "bio": "Founder. Chillicothe Edition."
     },
     {
       "id": "2",
@@ -19,10 +20,11 @@
       "credits": 100,
       "is_premium": false,
       "gender": "female",
-      "looking_for": "male",
+      "lat": 39.3340,
+      "lon": -82.9830,
       "color": "#FF69B4",
       "border": "none",
-      "bio": "Searching for a King."
+      "bio": "Searching for a King in the 740."
     },
     {
       "id": "3",
@@ -31,42 +33,19 @@
       "credits": 300,
       "is_premium": true,
       "gender": "male",
-      "looking_for": "male",
+      "lat": 39.3325,
+      "lon": -82.9810,
       "color": "#0F056B",
       "border": "neon-cyan",
       "bio": "Gym. Code. Crypto."
-    },
-    {
-      "id": "4",
-      "username": "Neon_Vixen",
-      "type": "user",
-      "credits": 450,
-      "is_premium": true,
-      "gender": "female",
-      "looking_for": "female",
-      "color": "#FF00FF",
-      "border": "neon-pink-ring",
-      "bio": "Girls trip only. Neon dreams."
-    },
-    {
-      "id": "5",
-      "username": "Midnight_Man",
-      "type": "user",
-      "credits": 50,
-      "is_premium": false,
-      "gender": "male",
-      "looking_for": "any",
-      "color": "#2C3E50",
-      "border": "none",
-      "bio": "Night owl."
     },
     {
       "id": "wisp_5",
       "username": "Common Wisp",
       "type": "wisp",
       "credits": 5,
-      "lat": 34.05205,
-      "lon": -118.24305,
+      "lat": 39.3335,
+      "lon": -82.9820,
       "wisp_class": "whisp-cyan"
     },
     {
@@ -74,8 +53,8 @@
       "username": "ULTRA Wisp",
       "type": "wisp",
       "credits": 50,
-      "lat": 34.0517,
-      "lon": -118.2438,
+      "lat": 39.3320,
+      "lon": -82.9835,
       "wisp_class": "whisp-red-glow"
     }
   ]
