@@ -1,5 +1,4 @@
 import math
-import time
 import json
 import asyncio
 import random
@@ -104,16 +103,24 @@ async def startup_event():
     asyncio.create_task(ghost_heartbeat())
     print("🚀 Spazz Engine: Online.")
 
-@app.get("/users")
+# --- UPDATE THE API USERS ROUTE ---
+@app.get("/api/users")
 def get_users():
-    # SHADOW BAN FILTER: Banned users are invisible
+    # Load users from the JSON DB
     all_users = load_from_db()
-    return [u.to_dict() for u in all_users if not u.is_shadow_banned]
+    # Pydantic models in V2 use .model_dump() instead of .to_dict()
+    # Or simply return the list and let FastAPI handle the JSON conversion automatically
+    return [u for u in all_users if not getattr(u, 'is_shadow_banned', False)]
 
+# --- UPDATE THE INDEX ROUTE ---
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    with open("index.html", "r") as f:
-        return f.read()
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        # If it still fails, this will tell us exactly WHY in the browser
+        return HTMLResponse(content=f"<h1>Engine Error: {str(e)}</h1>", status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
