@@ -16,6 +16,11 @@ async function updateRadar() {
         console.log("📡 Fetching signals...");
         const response = await fetch('/api/users');
         const data = await response.json();
+
+        document.getElementById('boot-screen').style.opacity = '0';
+setTimeout(() => {
+    document.getElementById('boot-screen').style.display = 'none';
+}, 1000);
         
         const currentIds = new Set(data.map(u => u.id));
         const allCoords = [];
