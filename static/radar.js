@@ -121,6 +121,11 @@ function triggerWinEffect(user) {
     document.getElementById('map').style.filter = "invert(1) hue-rotate(180deg)";
     document.getElementById('status').innerText = "SIGNAL HARVESTED!";
     lockedTargetId = null;
+
+    const flash = document.createElement('div');
+flash.className = 'collection-flash';
+document.body.appendChild(flash);
+setTimeout(() => flash.remove(), 500);
     
     setTimeout(() => { document.getElementById('map').style.filter = "none"; }, 2000);
 }
