@@ -16,10 +16,8 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 // 3. The Main Engine
 async function updateRadar() {
     try {
-        console.log("📡 Fetching signals...");
         const response = await fetch('/api/users');
         const data = await response.json();
-        
         const currentIds = new Set(data.map(u => u.id));
         const allCoords = [];
         const mapEl = document.getElementById('map');
@@ -28,7 +26,7 @@ async function updateRadar() {
             const color = user.wisp_class === 'whisp-red' ? '#ff0000' : 
                           (user.type === 'user' ? '#8a2be2' : '#00ffff');
 
-            // --- MARKER MANAGEMENT ---
+            // 1. Marker Management
             if (markers[user.id]) {
                 markers[user.id].setLatLng([user.lat, user.lon]);
             } else {
@@ -41,7 +39,6 @@ async function updateRadar() {
                     className: user.wisp_class || '' 
                 }).addTo(map).bindPopup(`<b>${user.username}</b>`);
 
-                // Set target when clicked
                 markers[user.id].on('click', () => { 
                     lockedTargetId = user.id; 
                     console.log("🔒 LOCKED ONTO:", user.username);
@@ -49,32 +46,28 @@ async function updateRadar() {
             }
             allCoords.push([user.lat, user.lon]);
 
-            // --- 🎯 THE SPAZZ SENSOR (Haversine Logic) ---
+            // 2. SPAZZ & VICTORY LOGIC (Only runs for the Locked Target)
             if (lockedTargetId === user.id) {
-                const center = map.getCenter();
-                const distance = getHaversineDistance(center.lat, center.lng, user.lat, user.lon);
-
-                let jitter = 0;
-                let blur = 0;
-
-                if (distance < 30) { // FACE TO FACE
-                    jitter = 15; blur = 5;
-                    document.getElementById('status').innerText = "⚠️ CRITICAL PROXIMITY: SPAZZING OUT";
-                } else if (distance < 150) { // NEARBY
-                    jitter = 4; blur = 1;
-                    document.getElementById('status').innerText = "📡 SIGNAL GAIN: CLOSING IN";
-                } else { // LONG RANGE
-                    document.getElementById('status').innerText = `🎯 TRACKING: ${Math.round(distance)}m`;
+                // Use currentLat/Lon from your GPS tracker
+                const distance = getHaversineDistance(currentLat || 39.3331, currentLon || -82.9824, user.lat, user.lon);
+                
+                // 🏆 VICTORY CHECK
+                if (distance < 15) {
+                    console.log("🏆 VICTORY: Target Reached!");
+                    yourOldCollectFunction(user.id); 
+                    lockedTargetId = null; // Unlock after collection
+                    return; 
                 }
+
+                // ⚡ THE SPAZZ SCALE
+                let jitter = 0, blur = 0;
+                if (distance < 30) { jitter = 15; blur = 5; document.getElementById('status').innerText = "⚠️ CRITICAL PROXIMITY"; } 
+                else if (distance < 150) { jitter = 4; blur = 1; document.getElementById('status').innerText = "📡 SIGNAL GAIN"; } 
+                else { document.getElementById('status').innerText = `🎯 TRACKING: ${Math.round(distance)}m`; }
 
                 // 👣 Wrong Way Detection
-                if (distance > lastDistance) {
-                    mapEl.style.opacity = "0.4"; // Fade if getting colder
-                    mapEl.style.transition = "opacity 2s ease";
-                } else {
-                    mapEl.style.opacity = "1.0";
-                    mapEl.style.transition = "opacity 0.3s ease";
-                }
+                mapEl.style.opacity = (distance > lastDistance) ? "0.4" : "1.0";
+                mapEl.style.transition = "opacity 0.5s ease";
                 lastDistance = distance;
 
                 // ⚡ Apply Visual Glitch
@@ -83,12 +76,9 @@ async function updateRadar() {
             }
         });
 
-        // --- CLEANUP & UI ---
+        // 3. Cleanup & Auto-Zoom
         Object.keys(markers).forEach(id => {
-            if (!currentIds.has(id)) {
-                map.removeLayer(markers[id]);
-                delete markers[id];
-            }
+            if (!currentIds.has(id)) { map.removeLayer(markers[id]); delete markers[id]; }
         });
 
         if (firstLoad && allCoords.length > 0) {
@@ -97,51 +87,5 @@ async function updateRadar() {
             const boot = document.getElementById('boot-screen');
             if (boot) { boot.style.opacity = '0'; setTimeout(() => boot.remove(), 1000); }
         }
-
-    } catch (err) {
-        console.error("⚠️ Radar Sync Error:", err);
-    }
+    } catch (err) { console.error("⚠️ Radar Sync Error:", err); }
 }
-
-// 4. Distance Formula
-function getHaversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; 
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-// 5. Initialize
-updateRadar();
-setInterval(updateRadar, 3000);
-
-// 📍 This connects YOUR real steps to the Radar
-let currentLat, currentLon; // Global variables for the Haversine formula
-
-function startTracking() {
-    navigator.geolocation.watchPosition(
-        (position) => {
-            currentLat = position.coords.latitude;
-            currentLon = position.coords.longitude;
-
-            // 🏎️ PAN instead of SET for smooth movement
-            map.panTo([currentLat, currentLon], {
-                animate: true,
-                duration: 1.5 // Creates a 1.5 second "glide"
-            });
-            
-            // 🔍 Zoom in deep to make street-walking feel accurate
-            if (map.getZoom() < 18) map.setZoom(18); 
-        },
-        (err) => console.error(err),
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
-}
-
-startTracking(); // Kick off the GPS
