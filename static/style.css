@@ -1,148 +1,72 @@
-/* 1. Force the page to fill the screen */
-html, body {
-    height: 100%;
+/* 1. Dark Map Base */
+body, html {
     margin: 0;
     padding: 0;
-    background-color: #000; /* Deep space black */
+    background: #000;
     overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
 }
 
-/* 2. The Map Container (The Foundation) */
 #map {
     height: 100vh;
     width: 100vw;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1; /* Map stays in back */
+    background: #050505;
+    transition: filter 0.2s ease, opacity 0.5s ease;
 }
 
-/* 3. The UI Overlay (The Glass) */
-.pulse-container {
+/* 2. The Status Bar (Top Left) */
+#status {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10; /* Higher than map */
-    pointer-events: none; /* Let clicks pass through to the map */
-}
-
-.status-label {
-    position: fixed;
-    bottom: 20px;
+    top: 20px;
     left: 20px;
-    z-index: 10;
-    color: #00ffff;
-    font-family: 'Courier New', Courier, monospace;
-    text-shadow: 0 0 5px #00ffff;
-}
-
-.logo-text {
-    font-size: 3rem;
+    z-index: 1000;
+    padding: 15px 25px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid #ff00ff; /* Neon Pink */
+    color: #00ffff; /* Neon Cyan */
     font-weight: bold;
-    letter-spacing: 10px;
-    color: #fff;
-    text-shadow: 0 0 20px #8a2be2;
-}
-
-.status-label {
-    position: fixed;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    background: rgba(0,0,0,0.8);
-    padding: 10px 20px;
-    border-radius: 20px;
-    border: 1px solid #8a2be2;
-    color: #00ffff;
-    text-shadow: 0 0 5px #00ffff;
-}
-
-/* 4. The Haunted Red Whisp Effect */
-.whisp-red {
-    background: #ff0000;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
-    animation: flicker 0.8s ease-in-out infinite;
-}
-
-@keyframes flicker {
-    0%, 100% { opacity: 1; filter: brightness(1); }
-    50% { opacity: 0.7; filter: brightness(1.8); }
-}
-
-/* 5. The Pulsing Green Blip Effect */
-.blip-green {
-    background: #00ff00;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    box-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
-    animation: pulse 1.5s ease-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; filter: brightness(1); }
-    50% { opacity: 0.7; filter: brightness(1.8); }
-}
-
-/* 6. The Glowing Blue Scan Effect */
-.scan-blue {    
-    background: rgba(0, 0, 255, 0.5);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    box-shadow: 0 0 30px rgba(0, 0, 255, 0.7), 0 0 60px rgba(0, 0, 255, 0.5);
-    animation: scanPulse 2s ease-out infinite;
-}
-
-@keyframes scanPulse {
-    0%, 100% { opacity: 1; filter: brightness(1); }
-    50% { opacity: 0.7; filter: brightness(1.8); }
-}
-.leaflet-control-attribution {
-    background: rgba(0, 0, 0, 0.5) !important; /* Semi-transparent */
-    color: #444 !important; /* Dark grey so it's barely there */
-    font-size: 8px !important;
+    letter-spacing: 2px;
     text-transform: uppercase;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+    pointer-events: none;
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 0% 100%);
 }
 
-.leaflet-control-attribution a {
-    color: #666 !important;
-    text-decoration: none;
+/* 3. The Marker Pulse Animation */
+.leaflet-interactive {
+    filter: drop-shadow(0 0 5px currentColor);
 }
 
-.leaflet-control-attribution a:hover {
-    color: #00ffff !important; /* Neon cyan on hover */
-    text-decoration: underline;
+/* 4. The "Spazz" Shake Animation */
+@keyframes spazz-vibration {
+    0% { transform: translate(0,0); }
+    25% { transform: translate(2px, -2px); }
+    50% { transform: translate(-2px, 2px); }
+    75% { transform: translate(2px, 2px); }
+    100% { transform: translate(0,0); }
 }
-#boot-screen {
+
+/* This class gets triggered by the JS we wrote earlier */
+.spazzing {
+    animation: spazz-vibration 0.05s infinite;
+    border: 2px solid #ff00ff !important;
+}
+
+/* 5. The Collection Flash */
+.collection-flash {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #000; /* Solid black until it fades */
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 1.5s ease; /* Smooth fade out */
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    animation: flash-out 0.5s ease-out;
 }
 
-.poster-logo {
-    width: 300px; /* Adjust size as needed */
-    border: 2px solid #00ffff;
-    box-shadow: 0 0 15px #ff00ff;
-}
-.glitch-text {
-    color: #00ffff;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 5px;
-    text-shadow: 2px 2px #ff00ff;
-    animation: flicker 0.5s infinite;
+@keyframes flash-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
 }
