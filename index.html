@@ -1,100 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<style>
-    /* 1. Dark Map Base */
-    body, html {
-        margin: 0;
-        padding: 0;
-        background: #000;
-        overflow: hidden;
-        font-family: 'Courier New', Courier, monospace;
-    }
-
-    #map {
-        height: 100vh;
-        width: 100vw;
-        background: #050505;
-        transition: filter 0.2s ease, opacity 0.5s ease;
-    }
-
-    /* 2. The Status Bar (Top Left) */
-    #status {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 1000;
-        padding: 15px 25px;
-        background: rgba(0, 0, 0, 0.85);
-        border: 1px solid #ff00ff; /* Neon Pink */
-        color: #00ffff; /* Neon Cyan */
-        font-weight: bold;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
-        pointer-events: none;
-    }
-
-    /* 3. The Proximity Meter (Right Side) */
-    #proximity-bar {
-        position: fixed;
-        right: 20px;
-        bottom: 50px;
-        width: 15px;
-        height: 200px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid #00ffff;
-        z-index: 1000;
-    }
-
-    #proximity-fill {
-        width: 100%;
-        height: 0%; 
-        background: #ff00ff;
-        position: absolute;
-        bottom: 0;
-        transition: height 0.3s ease;
-        box-shadow: 0 0 15px #ff00ff;
-    }
-
-    /* 4. Glitch Effects */
-    .leaflet-interactive {
-        filter: drop-shadow(0 0 5px currentColor);
-    }
-</style>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPAZZ | Stealth</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
-
+    <title>SPAZZ | Stealth Radar</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <style>
-        #map { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 0; 
-            background: #000; 
-        }
-        .pulse-container, .status-label, #discovery-card {
-            position: relative;
-            z-index: 10;
-            pointer-events: auto;
+        /* 1. Global Reset */
+        body, html {
+            margin: 0; padding: 0;
+            background: #000; overflow: hidden;
+            font-family: 'Inter', 'Courier New', monospace;
         }
 
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: black;
-            font-family: 'Inter', sans-serif;
+        /* 2. The Map Container */
+        #map {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0; background: #050505;
+            transition: filter 0.2s ease, opacity 0.5s ease;
         }
+
+        /* 3. The Cyber HUD (Top Left) */
+        #status {
+            position: fixed; top: 20px; left: 20px;
+            z-index: 1000; padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #ff00ff;
+            color: #00ffff;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+            pointer-events: none;
+        }
+
+        /* 4. The Proximity Meter (Right) */
+        #proximity-bar {
+            position: fixed; right: 20px; bottom: 50px;
+            width: 15px; height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            z-index: 1000;
+        }
+
+        #proximity-fill {
+            width: 100%; height: 0%; 
+            background: #ff00ff;
+            position: absolute; bottom: 0;
+            transition: height 0.3s ease;
+            box-shadow: 0 0 15px #ff00ff;
+        }
+
+        /* 5. Boot Screen */
+        #boot-screen {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: black; z-index: 9999;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            transition: opacity 1s ease;
+        }
+
+        .poster-logo { max-width: 80%; max-height: 70vh; margin-bottom: 20px; }
+        .glitch-text { color: #00ffff; letter-spacing: 5px; font-size: 0.8rem; }
+
+        /* 6. Discovery Card */
+        #discovery-card {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            width: 85%; max-width: 350px;
+            background: rgba(15, 15, 15, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px; border-radius: 15px;
+            color: white; text-align: center;
+            z-index: 1000; backdrop-filter: blur(10px);
+            display: none; /* Hidden until a wisp is clicked */
+        }
+
+        .user-tag { background: #8a2be2; padding: 3px 8px; border-radius: 5px; font-size: 0.7rem; margin: 0 5px; }
     </style>
 </head>
 <body>
@@ -104,50 +91,25 @@
     <p class="glitch-text">INITIALIZING STEALTH RADAR...</p>
 </div>
 
-<div id="status">INITIATING RADAR...</div>
+<div id="status">SCANNING FOR SIGNALS...</div>
 <div id="proximity-bar"><div id="proximity-fill"></div></div>
+
 <div id="map"></div>
 
-    <div id="map"></div>
-
-    <div class="pulse-container">
-        <div class="inner-ring"></div>
-        <div id="core" class="pulse-core"></div>
-        <div class="logo-text">SPAZZ</div>
+<div id="discovery-card">
+    <div id="blind-content">
+        <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center;">👤</div>
+        <h2 style="font-size: 1rem; color: #aaa;">ENTITY DETECTED</h2>
+        <p style="font-size: 0.7rem; opacity: 0.6;">Lock on to track distance.</p>
     </div>
-
-    <div id="status">SCANNING FOR SIGNALS...</div>
-<div id="map"></div>
-
-    <div id="discovery-card">
-        <div id="blind-content">
-            <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255,255,255,0.3);">
-                👤
-            </div>
-            <h2 style="font-size: 1.2rem; letter-spacing: 2px; color: #aaa;">UNKNOWN ENTITY</h2>
-            <p style="font-size: 0.8rem; opacity: 0.7; margin: 15px 0;">Get closer to unlock this profile.</p>
-        </div>
-
-        <div id="revealed-content" style="display: none;">
-            <h2 id="username">Unknown Entity</h2>
-            <div id="tags">
-                <span class="user-tag">#NEON</span>
-                <span class="user-tag">#SPAZZ</span>
-            </div>
-            <p style="font-size: 0.8rem; opacity: 0.7; margin: 15px 0;">Signal locked. Connect?</p>
-        </div>
-        
-        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button id="lock-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #fff; color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; width: 45%;">
-                🔒 LOCK ON
-            </button>
-            <button id="meet-btn" style="background: #8a2be2; border: none; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; width: 45%;">
-                🤝 MEET
-            </button>
-        </div>
+    
+    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+        <button id="lock-btn" style="background: none; border: 1px solid #fff; color: white; padding: 10px; border-radius: 20px; width: 100%; cursor: pointer;">🔒 LOCK SIGNAL</button>
     </div>
+</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/static/radar.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/radar.js"></script>
+
 </body>
 </html>
