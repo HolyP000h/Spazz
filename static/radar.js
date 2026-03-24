@@ -120,3 +120,24 @@ function getHaversineDistance(lat1, lon1, lat2, lon2) {
 // 5. Initialize
 updateRadar();
 setInterval(updateRadar, 3000);
+
+// 📍 This connects YOUR real steps to the Radar
+function startTracking() {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.watchPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            // Move the map to where YOU actually are
+            map.setView([latitude, longitude], 18); // Zoom in closer (18) to see street detail
+        },
+        (err) => console.error("GPS Error:", err),
+        {
+            enableHighAccuracy: true, // 🎯 This is the "Legion" level precision
+            maximumAge: 0,
+            timeout: 5000
+        }
+    );
+}
+
+startTracking(); // Kick off the GPS
