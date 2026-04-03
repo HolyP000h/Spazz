@@ -16,7 +16,6 @@ if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,7 +53,8 @@ def load_from_db() -> List[User]:
             data = json.load(f)
             user_data = data.get("users", [])
             return [User(**u) for u in user_data]
-    except:
+    except Exception as e:
+        print(f"Error loading DB: {e}")
         return []
 
 # --- 4. THE HEARTBEAT (Movement) ---
@@ -64,45 +64,83 @@ async def ghost_heartbeat():
         all_entities = load_from_db()
         if all_entities:
             for entity in all_entities:
-                # Subtle drifting movement
-                entity.lat += random.uniform(-0.0002, 0.0002)
-                entity.lon += random.uniform(-0.0002, 0.0002)
+                if entity.type == "wisp": # Only move ghosts, not the player!
+                    entity.lat += random.uniform(-0.0001, 0.0001)
+                    entity.lon += random.uniform(-0.0001, 0.0001)
             save_to_db(all_entities)
         await asyncio.sleep(3)
 
 # --- 5. STARTUP & ENDPOINTS ---
 @app.on_event("startup")
 async def startup_event():
-    # Start movement
     asyncio.create_task(ghost_heartbeat())
     
-    # Mass Populate if empty
     all_entities = load_from_db()
-    if len(all_entities) < 5:
-        print("🌌 Mass Manifesting 50 entities into the Void...")
+    
+    # 🚨 FIX: Ensure Ben exists at startup
+    if not any(u.id == "user_ben" for u in all_entities):
+        print("👤 Initializing Player: Ben")
+        all_entities.append(User(
+            id="user_ben", username="Ben", type="user",
+            lat=39.333, lon=-82.982, credits=0
+        ))
+
+    # Mass Populate if empty
+    if len(all_entities) < 10:
+        print("🌌 Mass Manifesting entities...")
         for i in range(50):
             new_id = f"gen_{random.randint(1000, 9999)}"
             roll = random.random()
-            
-            if roll < 0.1: # Purple Users
-                u_type, u_name, u_class = "user", f"Shadow_{i}", None
-            elif roll < 0.3: # Red Phantoms
-                u_type, u_name, u_class = "wisp", "Red Phantom", "whisp-red"
-            else: # Cyan Wisps
-                u_type, u_name, u_class = "wisp", "Common Wisp", "whisp-cyan"
+            if roll < 0.1: u_type, u_name, u_class = "user", f"Shadow_{i}", None
+            elif roll < 0.3: u_type, u_name, u_class = "wisp", "Red Phantom", "whisp-red"
+            else: u_type, u_name, u_class = "wisp", "Common Wisp", "whisp-cyan"
 
             all_entities.append(User(
                 id=new_id, username=u_name, type=u_type,
-                lat=39.333 + random.uniform(-0.02, 0.02),
-                lon=-82.982 + random.uniform(-0.02, 0.02),
+                lat=39.333 + random.uniform(-0.005, 0.005),
+                lon=-82.982 + random.uniform(-0.005, 0.005),
                 wisp_class=u_class
             ))
-        save_to_db(all_entities)
+    
+    save_to_db(all_entities)
     print("🚀 Spazz Engine: Online @ http://127.0.0.1:8888")
 
 @app.get("/api/users")
 def get_users():
-    return [u for u in load_from_db() if not u.is_shadow_banned]
+    all_entities = load_from_db()
+    # Find Ben to calculate distance for the Coach
+    user_ben = next((u for u in all_entities if u.id == "user_ben"), None)
+    
+    coach_msg = "COACH: Scanning for Phantoms..."
+    
+    if user_ben:
+        # If there's a Red Phantom nearby, the coach gets excited
+        has_red = any(u.wisp_class == "whisp-red" for u in all_entities)
+        if has_red:
+            coach_msg = "COACH: RED PHANTOM DETECTED. MOVE!"
+
+    return {
+        "entities": [u for u in all_entities if not u.is_shadow_banned],
+        "coach": coach_msg
+    }
+
+@app.post("/api/collect/{wisp_id}")
+async def collect_wisp(wisp_id: str):
+    all_entities = load_from_db()
+    target_wisp = next((x for x in all_entities if x.id == wisp_id), None)
+    user_ben = next((x for x in all_entities if x.id == "user_ben"), None)
+
+    if target_wisp and user_ben:
+        val = 50 if target_wisp.wisp_class == "whisp-red" else 15
+        user_ben.credits += val
+        
+        # Remove wisp and keep everything else (including Ben)
+        all_entities = [u for u in all_entities if u.id != wisp_id]
+        save_to_db(all_entities)
+        
+        return {"new_balance": user_ben.credits, "status": "success"}
+    
+    return {"status": "failed", "message": "Target lost"}, 400
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
