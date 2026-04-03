@@ -129,6 +129,31 @@ navigator.geolocation.watchPosition(pos => {
     map.panTo([myLat, myLon], { animate: true });
 }, err => console.warn("GPS Weak"), { enableHighAccuracy: true });
 
+navigator.geolocation.watchPosition(pos => {
+    myLat = pos.coords.latitude;
+    myLon = pos.coords.longitude;
+    
+    // 🎯 FORCE REVEAL: This creates your player marker if it doesn't exist
+    if (!markers['me']) {
+        markers['me'] = L.circleMarker([myLat, myLon], {
+            radius: 12,
+            fillColor: '#00ffff', // Neon Cyan for YOU
+            color: '#fff',
+            weight: 3,
+            fillOpacity: 1
+        }).addTo(map).bindPopup("YOU (STAY STEALTH)");
+    } else {
+        markers['me'].setLatLng([myLat, myLon]);
+    }
+
+    // Keep the camera on you
+    map.panTo([myLat, myLon], { animate: true });
+    
+}, err => {
+    console.warn("GPS ERROR: ", err.message);
+    document.getElementById('status').innerText = "GPS SIGNAL LOST";
+}, { enableHighAccuracy: true });
+
 // Start the pulse
 setInterval(updateRadar, 3000);
 
