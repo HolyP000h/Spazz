@@ -110,7 +110,13 @@ async def collect_wisp(wisp_id: str):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    # Looking for index.html in the ROOT folder
-    root_index = os.path.join(BASE_DIR, "..", "index.html")
-    with open(root_index, "r", encoding="utf-8") as f:
-        return f.read()
+    # This creates a rock-solid absolute path to the root index.html
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    root_path = os.path.dirname(current_dir)
+    index_path = os.path.join(root_path, "index.html")
+    
+    try:
+        with open(index_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return HTMLResponse(content=f"Error loading index: {str(e)}", status_code=500)
