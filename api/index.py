@@ -9,6 +9,8 @@ from typing import List, Optional
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+# This tells FastAPI: "If someone asks for /static, look in the static folder"
+app.mount("/static", StaticFiles(directory="../static"), name="static")
 
 # --- 1. CONFIG & PATHS ---
 # This ensures Vercel finds the DB inside the /api folder
