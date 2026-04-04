@@ -12,7 +12,7 @@ app = FastAPI()
 # --- 1. CONFIG & PATHS ---
 # This ensures Vercel finds the DB inside the /api folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, 'users_db.json')
+DB_FILE = '/tmp/users_db.json'
 
 app.add_middleware(
     CORSMiddleware,
