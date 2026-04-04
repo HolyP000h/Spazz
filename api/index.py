@@ -4,17 +4,25 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-# This tells FastAPI: "If someone asks for /static, look in the static folder"
-app.mount("/static", StaticFiles(directory="../static"), name="static")
+
+# --- DYNAMIC PATH LOGIC ---
+# This finds the absolute path to the 'static' folder in your project root
+current_file_path = os.path.abspath(__file__)
+api_dir = os.path.dirname(current_file_path)
+root_dir = os.path.dirname(api_dir)
+static_dir = os.path.join(root_dir, "static")
+
+# Mount using the absolute path we just found
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # --- 1. CONFIG & PATHS ---
-# This ensures Vercel finds the DB inside the /api folder
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = '/tmp/users_db.json'
+
 DB_FILE = '/tmp/users_db.json'
 
 app.add_middleware(
