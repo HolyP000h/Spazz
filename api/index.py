@@ -1,6 +1,7 @@
+import os
 import json
 import random
-import os
+import psycopg2
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,20 +11,47 @@ from typing import List, Optional
 
 app = FastAPI()
 
-# --- 1. DYNAMIC PATH LOGIC (The 500 Error Killer) ---
+# --- 1. CONFIG & DATABASE CONNECTION ---
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_db_connection():
+    # Connects to Neon Postgres
+    return psycopg2.connect(DATABASE_URL)
+
+# Initialize the Database Table
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT,
+            type TEXT,
+            lat FLOAT,
+            lon FLOAT,
+            credits INTEGER DEFAULT 0,
+            wisp_class TEXT
+        );
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# Run init_db on startup
+try:
+    init_db()
+except Exception as e:
+    print(f"DB Init Error: {e}")
+
+# --- 2. STATIC FILES & PATHS ---
 current_file_path = os.path.abspath(__file__)
-api_dir = os.path.dirname(current_file_path)
-root_dir = os.path.dirname(api_dir)
+root_dir = os.path.dirname(os.path.dirname(current_file_path))
 static_dir = os.path.join(root_dir, "static")
 
-# If for some reason the folder is missing, this prevents the crash
 if not os.path.exists(static_dir):
     os.makedirs(static_dir)
 
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-# --- 2. CONFIG & PATHS ---
-DB_FILE = '/tmp/users_db.json'
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,86 +68,74 @@ class User(BaseModel):
     lat: float
     lon: float
     credits: int = 0
-    gender: str = "other"
-    is_premium: bool = False
-    is_shadow_banned: bool = False
-    age: int = 25
     wisp_class: Optional[str] = None
 
-# --- 4. DATABASE TOOLS ---
-def save_to_db(users_list: List[User]):
-    data = {"users": [u.model_dump() for u in users_list]}
-    with open(DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
-
-def load_from_db() -> List[User]:
-    if not os.path.exists(DB_FILE):
-        return []
-    try:
-        with open(DB_FILE, 'r') as f:
-            data = json.load(f)
-            user_data = data.get("users", [])
-            return [User(**u) for u in user_data]
-    except Exception as e:
-        return []
-
-# --- 5. THE ENGINE ---
-def move_wisps(all_entities: List[User]):
-    for entity in all_entities:
-        if entity.type == "wisp":
-            entity.lat += random.uniform(-0.0001, 0.0001)
-            entity.lon += random.uniform(-0.0001, 0.0001)
-    return all_entities
-
-# --- 6. ENDPOINTS ---
+# --- 4. ENDPOINTS ---
 
 @app.get("/api/users")
 def get_users():
-    all_entities = load_from_db()
+    conn = get_db_connection()
+    cur = conn.cursor()
     
+    # Load all entities from Neon
+    cur.execute("SELECT id, username, type, lat, lon, credits, wisp_class FROM users")
+    rows = cur.fetchall()
+    all_entities = [User(id=r[0], username=r[1], type=r[2], lat=r[3], lon=r[4], credits=r[5], wisp_class=r[6]) for r in rows]
+
+    # Initialize Ben if missing
     if not any(u.id == "user_ben" for u in all_entities):
-        all_entities.append(User(
-            id="user_ben", username="Ben", type="user",
-            lat=39.333, lon=-82.982, credits=0
-        ))
-    
-    if len(all_entities) < 10:
-        for i in range(30):
-            new_id = f"gen_{random.randint(1000, 9999)}"
-            all_entities.append(User(
-                id=new_id, username="Wisp", type="wisp",
+        ben = User(id="user_ben", username="Ben", type="user", lat=39.333, lon=-82.982, credits=0)
+        cur.execute("INSERT INTO users (id, username, type, lat, lon, credits) VALUES (%s, %s, %s, %s, %s, %s)", 
+                    (ben.id, ben.username, ben.type, ben.lat, ben.lon, ben.credits))
+        all_entities.append(ben)
+
+    # Populate Wisps if needed
+    if len([u for u in all_entities if u.type == "wisp"]) < 10:
+        for i in range(20):
+            wisp = User(
+                id=f"gen_{random.randint(1000, 9999)}", username="Wisp", type="wisp",
                 lat=39.333 + random.uniform(-0.005, 0.005),
                 lon=-82.982 + random.uniform(-0.005, 0.005),
                 wisp_class="whisp-cyan"
-            ))
+            )
+            cur.execute("INSERT INTO users (id, username, type, lat, lon, wisp_class) VALUES (%s, %s, %s, %s, %s, %s)",
+                        (wisp.id, wisp.username, wisp.type, wisp.lat, wisp.lon, wisp.wisp_class))
+            all_entities.append(wisp)
 
-    all_entities = move_wisps(all_entities)
-    save_to_db(all_entities)
-    
-    return {
-        "entities": [u for u in all_entities if not u.is_shadow_banned],
-        "coach": "COACH: Scanning for Phantoms..."
-    }
+    # Move Wisps and Update DB
+    for u in all_entities:
+        if u.type == "wisp":
+            u.lat += random.uniform(-0.0001, 0.0001)
+            u.lon += random.uniform(-0.0001, 0.0001)
+            cur.execute("UPDATE users SET lat = %s, lon = %s WHERE id = %s", (u.lat, u.lon, u.id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"entities": all_entities, "coach": "COACH: Data stored in the Cloud Vault."}
 
 @app.post("/api/collect/{wisp_id}")
 async def collect_wisp(wisp_id: str):
-    all_entities = load_from_db()
-    target_wisp = next((x for x in all_entities if x.id == wisp_id), None)
-    user_ben = next((x for x in all_entities if x.id == "user_ben"), None)
-
-    if target_wisp and user_ben:
-        user_ben.credits += 15
-        all_entities = [u for u in all_entities if u.id != wisp_id]
-        save_to_db(all_entities)
-        return {"new_balance": user_ben.credits, "status": "success"}
+    conn = get_db_connection()
+    cur = conn.cursor()
     
-    return {"status": "failed", "message": "Target lost"}
+    # Add 15 credits to Ben and remove the wisp
+    cur.execute("UPDATE users SET credits = credits + 15 WHERE id = 'user_ben'")
+    cur.execute("DELETE FROM users WHERE id = %s", (wisp_id,))
+    
+    # Get new balance
+    cur.execute("SELECT credits FROM users WHERE id = 'user_ben'")
+    new_balance = cur.fetchone()[0]
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {"new_balance": new_balance, "status": "success"}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
     index_path = os.path.join(root_dir, "index.html")
-    try:
-        with open(index_path, "r", encoding="utf-8") as f:
-            return f.read()
-    except Exception as e:
-        return HTMLResponse(content=f"Error loading index: {str(e)}", status_code=500)
+    with open(index_path, "r", encoding="utf-8") as f:
+        return f.read()
