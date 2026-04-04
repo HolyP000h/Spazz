@@ -10,19 +10,19 @@ from typing import List, Optional
 
 app = FastAPI()
 
-# --- DYNAMIC PATH LOGIC ---
-# This finds the absolute path to the 'static' folder in your project root
+# --- 1. DYNAMIC PATH LOGIC (The 500 Error Killer) ---
 current_file_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(current_file_path)
 root_dir = os.path.dirname(api_dir)
 static_dir = os.path.join(root_dir, "static")
 
-# Mount using the absolute path we just found
+# If for some reason the folder is missing, this prevents the crash
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# --- 1. CONFIG & PATHS ---
-DB_FILE = '/tmp/users_db.json'
-
+# --- 2. CONFIG & PATHS ---
 DB_FILE = '/tmp/users_db.json'
 
 app.add_middleware(
@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 2. DATA MODEL ---
+# --- 3. DATA MODEL ---
 class User(BaseModel):
     id: str
     username: str
@@ -46,7 +46,7 @@ class User(BaseModel):
     age: int = 25
     wisp_class: Optional[str] = None
 
-# --- 3. DATABASE TOOLS ---
+# --- 4. DATABASE TOOLS ---
 def save_to_db(users_list: List[User]):
     data = {"users": [u.model_dump() for u in users_list]}
     with open(DB_FILE, 'w') as f:
@@ -61,10 +61,9 @@ def load_from_db() -> List[User]:
             user_data = data.get("users", [])
             return [User(**u) for u in user_data]
     except Exception as e:
-        print(f"Error loading DB: {e}")
         return []
 
-# --- 4. THE ENGINE (Movement logic moved inside the request) ---
+# --- 5. THE ENGINE ---
 def move_wisps(all_entities: List[User]):
     for entity in all_entities:
         if entity.type == "wisp":
@@ -72,20 +71,18 @@ def move_wisps(all_entities: List[User]):
             entity.lon += random.uniform(-0.0001, 0.0001)
     return all_entities
 
-# --- 5. ENDPOINTS ---
+# --- 6. ENDPOINTS ---
 
 @app.get("/api/users")
 def get_users():
     all_entities = load_from_db()
     
-    # Initialize Ben if the DB is empty or he's missing
     if not any(u.id == "user_ben" for u in all_entities):
         all_entities.append(User(
             id="user_ben", username="Ben", type="user",
             lat=39.333, lon=-82.982, credits=0
         ))
     
-    # Populate ghosts if needed
     if len(all_entities) < 10:
         for i in range(30):
             new_id = f"gen_{random.randint(1000, 9999)}"
@@ -96,7 +93,6 @@ def get_users():
                 wisp_class="whisp-cyan"
             ))
 
-    # Move ghosts every time the radar is checked
     all_entities = move_wisps(all_entities)
     save_to_db(all_entities)
     
@@ -117,15 +113,11 @@ async def collect_wisp(wisp_id: str):
         save_to_db(all_entities)
         return {"new_balance": user_ben.credits, "status": "success"}
     
-    return {"status": "failed", "message": "Target lost"}, 400
+    return {"status": "failed", "message": "Target lost"}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    # This creates a rock-solid absolute path to the root index.html
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    root_path = os.path.dirname(current_dir)
-    index_path = os.path.join(root_path, "index.html")
-    
+    index_path = os.path.join(root_dir, "index.html")
     try:
         with open(index_path, "r", encoding="utf-8") as f:
             return f.read()
