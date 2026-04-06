@@ -1,13 +1,24 @@
 import json
 import random
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 
 app = FastAPI()
+
+# --- 🛰️ THE AI COACH LOGIC ---
+COACH_TIPS = [
+    "Confidence is magnetic. Stand tall.",
+    "First impressions are 90% visual. Fresh trim?",
+    "Eye contact shows dominance and interest. Don't look away.",
+    "Don't be a 'simp'. Have a backbone.",
+    "Fitness is the ultimate multiplier. Hit the gym.",
+    "COACH: Be vewy vewy quiet... we hunting wisps.",
+    "COACH: Target detected. Stay frosty."
+]
 
 # --- 1. CONFIG & PATHS ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +40,7 @@ class User(BaseModel):
     lon: float
     credits: int = 0
     gender: str = "other"
-    seeking: str = "female"  # Added: "male", "female", or "everyone"
+    seeking: str = "female"
     is_premium: bool = False
     is_shadow_banned: bool = False
     age: int = 25
@@ -64,10 +75,10 @@ def move_wisps(all_entities: List[User]):
 # --- 5. ENDPOINTS ---
 
 @app.get("/api/users")
-def get_users():
+async def get_users():
     all_entities = load_from_db()
     
-    # Initialize Ben if missing (Defaulting Ben to seeking females)
+    # Initialize Ben if missing
     if not any(u.id == "user_ben" for u in all_entities):
         all_entities.append(User(
             id="user_ben", username="Ben", type="user",
@@ -82,8 +93,6 @@ def get_users():
         for i in range(30):
             new_id = f"gen_{random.randint(1000, 9999)}"
             is_match_candidate = random.random() > 0.7 
-            
-            # Randomize gender for ghosts/targets
             gen_gender = random.choice(["male", "female", "non-binary"])
             
             all_entities.append(User(
@@ -97,20 +106,15 @@ def get_users():
                 wisp_class="whisp-purple" if is_match_candidate else "whisp-cyan"
             ))
             
-    # Move ghosts every time the radar is checked
     all_entities = move_wisps(all_entities)
     save_to_db(all_entities)
     
-    # --- UNIVERSAL COMPATIBILITY LOGIC ---
-    # We tag each entity with 'is_match' based on Ben's specific settings
     output_entities = []
     for u in all_entities:
         u_dict = u.model_dump()
         u_dict["is_match"] = False
         
-        # Only check if it's a "user" and not Ben himself
         if u.type == "user" and u.id != "user_ben":
-            # Match if seeking everyone, or if gender matches Ben's 'seeking'
             if user_ben.seeking == "everyone" or user_ben.seeking == u.gender:
                 u_dict["is_match"] = True
         
@@ -118,7 +122,7 @@ def get_users():
     
     return {
         "entities": [u for u in output_entities if not u.get("is_shadow_banned")],
-        "coach": "COACH: Be vewy vewy quiet... we hunting wisps." if random.random() > 0.5 else "COACH: Target detected. Stay frosty."
+        "coach": random.choice(COACH_TIPS)
     }    
 
 @app.post("/api/collect/{wisp_id}")
@@ -129,7 +133,6 @@ async def collect_wisp(wisp_id: str):
 
     if target_wisp and user_ben:
         user_ben.credits += 15
-        # Remove the collected target
         all_entities = [u for u in all_entities if u.id != wisp_id]
         save_to_db(all_entities)
         return {"new_balance": user_ben.credits, "status": "success"}
@@ -139,5 +142,8 @@ async def collect_wisp(wisp_id: str):
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
     root_index = os.path.join(BASE_DIR, "..", "index.html")
-    with open(root_index, "r", encoding="utf-8") as f:
-        return f.read()
+    try:
+        with open(root_index, "r", encoding="utf-8") as f:
+            return f.read()
+    except:
+        return "Error: index.html not found in root."
