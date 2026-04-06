@@ -10,7 +10,6 @@ from typing import List, Optional
 app = FastAPI()
 
 # --- 1. CONFIG & PATHS ---
-# This ensures Vercel finds the DB inside the /api folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'users_db.json')
 
@@ -30,6 +29,7 @@ class User(BaseModel):
     lon: float
     credits: int = 0
     gender: str = "other"
+    seeking: str = "female"  # Added: "male", "female", or "everyone"
     is_premium: bool = False
     is_shadow_banned: bool = False
     age: int = 25
@@ -53,7 +53,7 @@ def load_from_db() -> List[User]:
         print(f"Error loading DB: {e}")
         return []
 
-# --- 4. THE ENGINE (Movement logic moved inside the request) ---
+# --- 4. THE ENGINE ---
 def move_wisps(all_entities: List[User]):
     for entity in all_entities:
         if entity.type == "wisp":
@@ -67,37 +67,57 @@ def move_wisps(all_entities: List[User]):
 def get_users():
     all_entities = load_from_db()
     
-    # Initialize Ben if the DB is empty or he's missing
+    # Initialize Ben if missing (Defaulting Ben to seeking females)
     if not any(u.id == "user_ben" for u in all_entities):
         all_entities.append(User(
             id="user_ben", username="Ben", type="user",
-            lat=39.333, lon=-82.982, credits=0
+            lat=39.333, lon=-82.982, credits=0, 
+            gender="male", seeking="female"
         ))
     
-    # Populate ghosts if needed
+    user_ben = next(u for u in all_entities if u.id == "user_ben")
+
+    # Populate ghosts/targets if needed
     if len(all_entities) < 10:
         for i in range(30):
             new_id = f"gen_{random.randint(1000, 9999)}"
-            # Randomly decide if this is a Wisp or a Potential Match
-            is_match = random.random() > 0.7  # 30% chance it's a real person
+            is_match_candidate = random.random() > 0.7 
+            
+            # Randomize gender for ghosts/targets
+            gen_gender = random.choice(["male", "female", "non-binary"])
             
             all_entities.append(User(
                 id=new_id, 
-                username="Potential Spazz" if is_match else "Wisp", 
-                type="user" if is_match else "wisp", # 'user' type triggers the radar lock
-                lat=39.333 + random.uniform(-0.015, 0.015), # Wider 30-mile scatter
+                username="Potential Spazz" if is_match_candidate else "Wisp", 
+                type="user" if is_match_candidate else "wisp",
+                lat=39.333 + random.uniform(-0.015, 0.015),
                 lon=-82.982 + random.uniform(-0.015, 0.015),
-                gender="female" if is_match else "other",
-                age=random.randint(19, 45) if is_match else 25,
-                wisp_class="whisp-purple" if is_match else "whisp-cyan"
+                gender=gen_gender,
+                age=random.randint(19, 45),
+                wisp_class="whisp-purple" if is_match_candidate else "whisp-cyan"
             ))
             
     # Move ghosts every time the radar is checked
     all_entities = move_wisps(all_entities)
     save_to_db(all_entities)
     
+    # --- UNIVERSAL COMPATIBILITY LOGIC ---
+    # We tag each entity with 'is_match' based on Ben's specific settings
+    output_entities = []
+    for u in all_entities:
+        u_dict = u.model_dump()
+        u_dict["is_match"] = False
+        
+        # Only check if it's a "user" and not Ben himself
+        if u.type == "user" and u.id != "user_ben":
+            # Match if seeking everyone, or if gender matches Ben's 'seeking'
+            if user_ben.seeking == "everyone" or user_ben.seeking == u.gender:
+                u_dict["is_match"] = True
+        
+        output_entities.append(u_dict)
+    
     return {
-        "entities": [u for u in all_entities if not u.is_shadow_banned],
+        "entities": [u for u in output_entities if not u.get("is_shadow_banned")],
         "coach": "COACH: Be vewy vewy quiet... we hunting wisps." if random.random() > 0.5 else "COACH: Target detected. Stay frosty."
     }    
 
@@ -109,6 +129,7 @@ async def collect_wisp(wisp_id: str):
 
     if target_wisp and user_ben:
         user_ben.credits += 15
+        # Remove the collected target
         all_entities = [u for u in all_entities if u.id != wisp_id]
         save_to_db(all_entities)
         return {"new_balance": user_ben.credits, "status": "success"}
@@ -117,7 +138,6 @@ async def collect_wisp(wisp_id: str):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    # Looking for index.html in the ROOT folder
     root_index = os.path.join(BASE_DIR, "..", "index.html")
     with open(root_index, "r", encoding="utf-8") as f:
         return f.read()

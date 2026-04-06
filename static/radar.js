@@ -1,14 +1,20 @@
 // --- 📍 GLOBAL STATE ---
-let myLat = 39.333, myLon = -82.982; // Default starting point
+let myLat = 39.333, myLon = -82.982; 
 let markers = {};
 let lockedTargetId = null; 
 let isAlerting = false; 
-const myCriteria = { gender: "female", minAge: 18, maxAge: 50 };
+
+// This will now be populated by the database
+let mySettings = {
+    seeking: "everyone", 
+    minAge: 18, 
+    maxAge: 99
+};
 
 // --- 🔊 AUDIO ENGINE ---
 const sfx = {
     lock: new Audio('/static/audio/lockon.mp3'),
-    wisp_ping: new Audio('/static/audio/wisp_found.mp3'), // Your new Bunny Hunt sound
+    wisp_ping: new Audio('/static/audio/wisp_found.mp3'),
     collect: new Audio('/static/audio/collect.mp3'),
     ping: new Audio('/static/audio/ping.mp3')
 };
@@ -25,25 +31,30 @@ var map = L.map('map', { zoomControl: false, attributionControl: false }).setVie
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+const R = 6371e3;
+const dLat = (lat2 - lat1) * Math.PI / 180;
+const dLon = (lon2 - lon1) * Math.PI / 180;
+const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 // --- 📡 THE RADAR LOOP ---
 async function updateRadar() {
     try {
-        const response = await fetch('/api/users');
-        const json = await response.json();
-        const users = json.entities || [];
-        const currentIds = new Set(users.map(u => u.id)); // Fixes one red line
+const response = await fetch('/api/users');
+const json = await response.json();
+const users = json.entities || [];
+const coinEl = document.getElementById('coin-count');
+            if (coinEl && json.entities) {
+const ben = json.entities.find(u => u.id === 'user_ben');
+            if (ben) coinEl.innerText = ben.credits || 0;
+}
+const currentIds = new Set(users.map(u => u.id));
 
         // 1. DUAL INTERCEPTOR (MATCH vs WISP)
-        if (!lockedTargetId && !isAlerting) {
-            const girlMatch = users.find(u => u.type === 'user' && u.gender === myCriteria.gender && u.age >= myCriteria.minAge && u.age <= myCriteria.maxAge);
-            const wispMatch = users.find(u => u.type === 'wisp');
+            if (!lockedTargetId && !isAlerting) {
+const girlMatch = users.find(u => u.type === 'user' && u.gender === myCriteria.gender && u.age >= myCriteria.minAge && u.age <= myCriteria.maxAge);
+const wispMatch = users.find(u => u.type === 'wisp');
 
             if (girlMatch && getDistance(myLat, myLon, girlMatch.lat, girlMatch.lon) < 100) {
                 triggerSpazzAlert(girlMatch, 'spazz');
@@ -54,9 +65,9 @@ async function updateRadar() {
 
         // 2. RENDER & TRACKING 
         users.forEach(user => {
-            const color = user.wisp_class === 'whisp-red' ? '#ff0000' : (user.type === 'user' ? '#8a2be2' : '#00ffff');
+const color = user.wisp_class === 'whisp-red' ? '#ff0000' : (user.type === 'user' ? '#8a2be2' : '#00ffff');
 
-            if (markers[user.id]) {
+                if (markers[user.id]) {
                 markers[user.id].setLatLng([user.lat, user.lon]);
             } else {
                 markers[user.id] = L.circleMarker([user.lat, user.lon], {
@@ -70,12 +81,12 @@ async function updateRadar() {
                 });
             }
 
-            if (lockedTargetId === user.id) {
-                const dist = getDistance(myLat, myLon, user.lat, user.lon);
-                const statusEl = document.getElementById('status');
+                if (lockedTargetId === user.id) {
+const dist = getDistance(myLat, myLon, user.lat, user.lon);
+const statusEl = document.getElementById('status');
                 if (statusEl) statusEl.innerText = `LOCKED: ${Math.round(dist)}m`;
                 
-                const fill = document.getElementById('proximity-fill');
+const fill = document.getElementById('proximity-fill');
                 if (fill) {
                     let percent = Math.max(0, Math.min(100, (100 - dist))); 
                     fill.style.height = percent + "%";
