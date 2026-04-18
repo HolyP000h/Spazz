@@ -63,6 +63,7 @@ class User(BaseModel):
     age: int = 25
     wisp_class: Optional[str] = None
     online: bool = False
+    wisp_reward: int = 0  # credits this wisp drops when collected
     # Stats
     wisps_collected: int = 0
     steps: int = 0
@@ -259,7 +260,11 @@ async def get_users(auth: AuthRecord = Depends(get_current_user)):
                 id=f"wisp_{uuid.uuid4().hex[:6]}", username="Wisp", type="wisp",
                 lat=anchor.lat + random.uniform(-0.02, 0.02),
                 lon=anchor.lon + random.uniform(-0.02, 0.02),
-                wisp_class="whisp-cyan"))
+                wisp_class="whisp-cyan",
+                wisp_reward=random.choices(
+                    [3, 5, 7, 10, 15, 20, 25],
+                    weights=[30, 25, 20, 12, 7, 4, 2]  # common=small, rare=big
+                )[0]))
 
     all_entities = move_wisps(all_entities)
     save_to_db(all_entities)
@@ -312,7 +317,7 @@ async def collect_target(target_id: str, auth: AuthRecord = Depends(get_current_
     target = next((x for x in all_entities if x.id == target_id), None)
     current_user = next((x for x in all_entities if x.id == auth.user_id), None)
     if not target or not current_user: raise HTTPException(404, "Not found")
-    reward = 15 if target.type == "wisp" else 5
+    reward = target.wisp_reward if target.type == "wisp" and target.wisp_reward > 0 else (random.randint(3,10) if target.type == "wisp" else 5)
     current_user.credits += reward
     if target.type == "wisp":
         current_user.wisps_collected += 1
@@ -357,23 +362,23 @@ async def read_index():
 # ─────────────────────────────────────────
 SHOP_ITEMS = [
     # Backgrounds
-    {"id":"bg_neon_city",   "type":"background","name":"Neon City",      "desc":"Purple/cyan cityscape",          "price":50,  "preview":"#1a0033","premium":False},
-    {"id":"bg_void",        "type":"background","name":"The Void",        "desc":"Deep black with star particles", "price":75,  "preview":"#000005","premium":False},
-    {"id":"bg_lava",        "type":"background","name":"Lava Grid",       "desc":"Red hot grid lines",             "price":100, "preview":"#330000","premium":False},
-    {"id":"bg_aurora",      "type":"background","name":"Aurora",          "desc":"Northern lights shimmer",        "price":150, "preview":"#001a1a","premium":True},
-    {"id":"bg_matrix",      "type":"background","name":"Matrix Rain",     "desc":"Green code rain",                "price":200, "preview":"#001000","premium":True},
+    {"id":"bg_neon_city",   "type":"background","name":"Neon City",      "desc":"Purple/cyan cityscape",          "price":120, "preview":"#1a0033","premium":False},
+    {"id":"bg_void",        "type":"background","name":"The Void",        "desc":"Deep black with star particles", "price":180, "preview":"#000005","premium":False},
+    {"id":"bg_lava",        "type":"background","name":"Lava Grid",       "desc":"Red hot grid lines",             "price":250, "preview":"#330000","premium":False},
+    {"id":"bg_aurora",      "type":"background","name":"Aurora",          "desc":"Northern lights shimmer",        "price":400, "preview":"#001a1a","premium":True},
+    {"id":"bg_matrix",      "type":"background","name":"Matrix Rain",     "desc":"Green code rain",                "price":600, "preview":"#001000","premium":True},
     # Ping sounds
-    {"id":"ping_chime",     "type":"ping","name":"Crystal Chime",  "desc":"Clean bell tone",           "price":30,  "preview":"🔔","premium":False},
-    {"id":"ping_zap",       "type":"ping","name":"Zap",            "desc":"Electric crackle",          "price":40,  "preview":"⚡","premium":False},
-    {"id":"ping_blip",      "type":"ping","name":"Retro Blip",     "desc":"8-bit classic",             "price":30,  "preview":"🎮","premium":False},
-    {"id":"ping_whoosh",    "type":"ping","name":"Whoosh",         "desc":"Sweeping air sound",        "price":50,  "preview":"💨","premium":True},
-    {"id":"ping_heartbeat", "type":"ping","name":"Heartbeat",      "desc":"Pulse thump",               "price":60,  "preview":"💓","premium":True},
+    {"id":"ping_chime",     "type":"ping","name":"Crystal Chime",  "desc":"Clean bell tone",           "price":75,  "preview":"🔔","premium":False},
+    {"id":"ping_zap",       "type":"ping","name":"Zap",            "desc":"Electric crackle",          "price":100, "preview":"⚡","premium":False},
+    {"id":"ping_blip",      "type":"ping","name":"Retro Blip",     "desc":"8-bit classic",             "price":75,  "preview":"🎮","premium":False},
+    {"id":"ping_whoosh",    "type":"ping","name":"Whoosh",         "desc":"Sweeping air sound",        "price":200, "preview":"💨","premium":True},
+    {"id":"ping_heartbeat", "type":"ping","name":"Heartbeat",      "desc":"Pulse thump",               "price":250, "preview":"💓","premium":True},
     # Flash designs
-    {"id":"flash_lightning","type":"flash","name":"Lightning",    "desc":"Yellow bolt flash",         "price":40,  "preview":"⚡","premium":False},
-    {"id":"flash_ripple",   "type":"flash","name":"Ripple",       "desc":"Expanding ring pulse",      "price":50,  "preview":"🌊","premium":False},
-    {"id":"flash_fire",     "type":"flash","name":"Fire",         "desc":"Orange flame burst",        "price":75,  "preview":"🔥","premium":False},
-    {"id":"flash_galaxy",   "type":"flash","name":"Galaxy Spin",  "desc":"Spiral star explosion",     "price":120, "preview":"🌀","premium":True},
-    {"id":"flash_glitch",   "type":"flash","name":"Glitch",       "desc":"Digital distortion",        "price":100, "preview":"📺","premium":True},
+    {"id":"flash_lightning","type":"flash","name":"Lightning",    "desc":"Yellow bolt flash",         "price":90,  "preview":"⚡","premium":False},
+    {"id":"flash_ripple",   "type":"flash","name":"Ripple",       "desc":"Expanding ring pulse",      "price":120, "preview":"🌊","premium":False},
+    {"id":"flash_fire",     "type":"flash","name":"Fire",         "desc":"Orange flame burst",        "price":200, "preview":"🔥","premium":False},
+    {"id":"flash_galaxy",   "type":"flash","name":"Galaxy Spin",  "desc":"Spiral star explosion",     "price":450, "preview":"🌀","premium":True},
+    {"id":"flash_glitch",   "type":"flash","name":"Glitch",       "desc":"Digital distortion",        "price":350, "preview":"📺","premium":True},
 ]
 
 SUBSCRIPTION_PRICE = 299  # credits/month
