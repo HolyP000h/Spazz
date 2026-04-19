@@ -783,3 +783,117 @@ async def subscribe(request: Request, auth=Depends(get_current_user)):
         "subscription_plan": plan,
     }).eq("id", auth["id"]).execute()
     return {"status": "subscribed", "plan": plan}
+
+# ── PING SYSTEM ───────────────────────────────────────────────────
+
+# In-memory ping queue (Vercel ephemeral, good enough for real-time)
+_active_pings = {}  # ping_id -> ping data
+
+@app.post("/api/ping/send")
+async def send_ping(request: Request, auth=Depends(get_current_user)):
+    """Send a ping that broadcasts to nearby users."""
+    body = await request.json()
+
+    priority = body.get("priority", 1)
+    is_premium = body.get("is_premium", False)
+    lat = body.get("lat", 0)
+    lng = body.get("lng", 0)
+
+    # Premium pings have shorter cooldown enforced server-side
+    user_id = auth["id"]
+    cooldown_key = f"ping_cooldown_{user_id}"
+
+    ping_id = f"ping_{uuid.uuid4().hex[:8]}"
+    ping_data = {
+        "id": ping_id,
+        "user_id": user_id,
+        "username": auth.get("username", "Hunter"),
+        "ping_id": body.get("ping_id", "ping_default"),
+        "emoji": body.get("emoji", "📡"),
+        "name": body.get("name", "Ping"),
+        "sound": body.get("sound", "beep"),
+        "haptic": body.get("haptic", "light"),
+        "priority": priority,
+        "lat": lat,
+        "lng": lng,
+        "is_premium": is_premium,
+        "sent_at": time.time(),
+        "expires_at": time.time() + 30,  # pings expire after 30s
+    }
+
+    _active_pings[ping_id] = ping_data
+
+    # Also persist to Supabase so users who poll get it
+    try:
+        supabase.table("pings").insert({
+            "id": ping_id,
+            "user_id": user_id,
+            "username": auth.get("username", "Hunter"),
+            "ping_type": body.get("ping_id", "ping_default"),
+            "emoji": body.get("emoji", "📡"),
+            "name": body.get("name", "Ping"),
+            "priority": priority,
+            "lat": lat,
+            "lng": lng,
+            "is_premium": is_premium,
+        }).execute()
+    except:
+        pass
+
+    return {**ping_data, "status": "sent"}
+
+
+@app.get("/api/ping/nearby")
+async def get_nearby_pings(lat: float, lng: float, auth=Depends(get_current_user)):
+    """
+    Returns pings near the user, sorted by priority descending.
+    Higher priority (paid) pings surface first — they push through free ones.
+    """
+    PING_RADIUS_M = 1000  # 1km
+    now = time.time()
+
+    # Clean expired pings
+    expired = [k for k, v in _active_pings.items() if v.get("expires_at", 0) < now]
+    for k in expired:
+        del _active_pings[k]
+
+    # Get pings from Supabase too (other instances)
+    try:
+        cutoff_time = now - 30
+        db_pings = supabase.table("pings").select("*").gt("created_at", 
+            __import__('datetime').datetime.utcfromtimestamp(cutoff_time).isoformat()
+        ).execute()
+        for p in (db_pings.data or []):
+            if p["id"] not in _active_pings:
+                _active_pings[p["id"]] = {
+                    "id": p["id"],
+                    "user_id": p["user_id"],
+                    "username": p.get("username", "Hunter"),
+                    "ping_id": p.get("ping_type", "ping_default"),
+                    "emoji": p.get("emoji", "📡"),
+                    "name": p.get("name", "Ping"),
+                    "sound": "beep",
+                    "haptic": "light",
+                    "priority": p.get("priority", 1),
+                    "lat": p.get("lat", 0),
+                    "lng": p.get("lng", 0),
+                    "is_premium": p.get("is_premium", False),
+                    "sent_at": now,
+                    "expires_at": now + 30,
+                }
+    except:
+        pass
+
+    # Filter to nearby, exclude own pings
+    nearby = []
+    for ping in _active_pings.values():
+        if ping["user_id"] == auth["id"]:
+            continue
+        dist = haversine(lat, lng, ping.get("lat", 0), ping.get("lng", 0))
+        if dist <= PING_RADIUS_M:
+            nearby.append({**ping, "distance_m": round(dist)})
+
+    # Sort by priority DESC — paid pings always surface first
+    nearby.sort(key=lambda p: p["priority"], reverse=True)
+
+    return {"pings": nearby[:10]}  # max 10 pings at once
