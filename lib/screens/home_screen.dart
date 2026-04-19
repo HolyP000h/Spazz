@@ -1,0 +1,323 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'map_screen.dart';
+import 'chat_screen.dart';
+import 'profile_screen.dart';
+import 'shop_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+  Map<String, dynamic> _userData = {};
+  List<dynamic> _leaderboard = [];
+  bool _loading = true;
+
+  static const _baseUrl = 'https://www.spazzapp.com';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    final userId = prefs.getString('user_id') ?? '';
+
+    try {
+      final userRes = await http.get(
+        Uri.parse('$_baseUrl/api/user/$userId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      final lbRes = await http.get(
+        Uri.parse('$_baseUrl/api/leaderboard'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (userRes.statusCode == 200) {
+        setState(() {
+          _userData = json.decode(userRes.body);
+        });
+      }
+      if (lbRes.statusCode == 200) {
+        setState(() {
+          _leaderboard = json.decode(lbRes.body);
+        });
+      }
+    } catch (e) {
+      // ignore network errors silently
+    }
+
+    setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screens = [
+      _DashboardTab(
+        userData: _userData,
+        leaderboard: _leaderboard,
+        loading: _loading,
+        onRefresh: _loadUserData,
+      ),
+      const ChatScreen(),
+      const ShopScreen(),
+      const ProfileScreen(),
+    ];
+
+    return Scaffold(
+      body: screens[_currentIndex],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF13131A),
+          border: Border(top: BorderSide(color: Color(0xFF1E1E2E))),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (i) => setState(() => _currentIndex = i),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: const Color(0xFF7C3AED),
+          unselectedItemColor: const Color(0xFF444460),
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Chat'),
+            BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), activeIcon: Icon(Icons.storefront), label: 'Shop'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardTab extends StatelessWidget {
+  final Map<String, dynamic> userData;
+  final List<dynamic> leaderboard;
+  final bool loading;
+  final VoidCallback onRefresh;
+
+  const _DashboardTab({
+    required this.userData,
+    required this.leaderboard,
+    required this.loading,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final username = userData['username'] ?? 'Spazzer';
+    final wispCoins = userData['wisp_coins'] ?? 0;
+    final steps = userData['steps'] ?? 0;
+    final xp = userData['xp'] ?? 0;
+    final level = userData['level'] ?? 1;
+    final calories = (userData['calories'] ?? 0.0).toStringAsFixed(0);
+    final xpProgress = (xp % 100) / 100.0;
+
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: () async => onRefresh(),
+        color: const Color(0xFF7C3AED),
+        backgroundColor: const Color(0xFF13131A),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: loading
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Hey, $username 👋',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold)),
+                            const Text('Go find some wisps!',
+                                style: TextStyle(color: Color(0xFF888899), fontSize: 14)),
+                          ],
+                        ),
+                        // Wisp coin badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E2E),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF7C3AED)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Text('✨', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 4),
+                              Text('$wispCoins',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Level + XP bar
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E2E),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Level $level',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16)),
+                              Text('$xp XP',
+                                  style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 14)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: LinearProgressIndicator(
+                              value: xpProgress,
+                              backgroundColor: const Color(0xFF13131A),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
+                              minHeight: 8,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('${((1 - xpProgress) * 100).toInt()} XP to next level',
+                              style: const TextStyle(color: Color(0xFF888899), fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Stats row
+                    Row(
+                      children: [
+                        _StatCard(icon: '👟', label: 'Steps', value: '$steps'),
+                        const SizedBox(width: 12),
+                        _StatCard(icon: '🔥', label: 'Calories', value: calories),
+                        const SizedBox(width: 12),
+                        _StatCard(icon: '✨', label: 'Wisps', value: '${userData['wisps_collected'] ?? 0}'),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Hunt button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.radar, color: Colors.white),
+                        label: const Text('Start Hunting',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7C3AED),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Leaderboard
+                    const Text('🏆 Leaderboard',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    if (leaderboard.isEmpty)
+                      const Center(
+                        child: Text('No hunters yet — be the first!',
+                            style: TextStyle(color: Color(0xFF888899))),
+                      )
+                    else
+                      ...leaderboard.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final player = entry.value;
+                        final medals = ['🥇', '🥈', '🥉'];
+                        final medal = i < 3 ? medals[i] : '${i + 1}.';
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E2E),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(medal, style: const TextStyle(fontSize: 20)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(player['username'] ?? '',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                              ),
+                              Text('${player['xp'] ?? 0} XP',
+                                  style: const TextStyle(color: Color(0xFF7C3AED))),
+                            ],
+                          ),
+                        );
+                      }),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String icon;
+  final String label;
+  final String value;
+
+  const _StatCard({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E2E),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 6),
+            Text(value,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(label, style: const TextStyle(color: Color(0xFF888899), fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
