@@ -588,3 +588,198 @@ async def google_auth(req: GoogleAuthRequest):
         "username": username,
         "is_admin": False
     }
+
+# ── FLUTTER MAP ENDPOINTS ─────────────────────────────────────────
+
+@app.post("/api/location/update")
+async def location_update_flutter(request: Request, auth=Depends(get_current_user)):
+    """Flutter map screen pings this every 30s with lat/lng."""
+    body = await request.json()
+    lat = body.get("lat")
+    lng = body.get("lng")
+    if lat is None or lng is None:
+        raise HTTPException(400, "lat and lng required")
+
+    user = auth
+    last_lat = user.get("last_lat")
+    last_lon = user.get("last_lon")
+    distance_m = user.get("distance_m", 0) or 0
+
+    if last_lat and last_lon:
+        dist = haversine(float(last_lat), float(last_lon), lat, lng)
+        if 3 < dist < 500:
+            distance_m += dist
+
+    steps = meters_to_steps(distance_m)
+    calories = round(meters_to_calories(distance_m, user.get("age", 25)), 1)
+
+    # Track hotspot visits — increment visit count for nearby hotspots
+    try:
+        hotspots_res = supabase.table("hotspots").select("*").execute()
+        for hs in (hotspots_res.data or []):
+            d = haversine(lat, lng, hs.get("lat", 0), hs.get("lng", 0))
+            if d < hs.get("radius", 50):
+                supabase.table("hotspots").update({
+                    "visit_count": (hs.get("visit_count") or 0) + 1
+                }).eq("id", hs["id"]).execute()
+    except:
+        pass
+
+    supabase.table("users").update({
+        "lat": lat,
+        "lon": lng,
+        "last_lat": lat,
+        "last_lon": lng,
+        "distance_m": distance_m,
+        "steps": steps,
+        "calories": calories,
+        "online": True,
+        "last_seen": time.time()
+    }).eq("id", user["id"]).execute()
+
+    return {"status": "ok", "steps": steps, "calories": calories}
+
+
+@app.get("/api/nearby")
+async def get_nearby(lat: float, lng: float, user_id: str, auth=Depends(get_current_user)):
+    """Returns nearby users, wisps, and hotspots for the map screen."""
+    RADIUS_M = 2000  # 2km radius
+
+    # Nearby users (online in last 5 minutes)
+    cutoff = time.time() - 300
+    all_users_res = supabase.table("users").select(
+        "id,username,lat,lon,is_premium,last_seen"
+    ).eq("online", True).execute()
+
+    nearby_users = []
+    for u in (all_users_res.data or []):
+        if u["id"] == auth["id"]:
+            continue
+        if not u.get("lat") or not u.get("lon"):
+            continue
+        if (u.get("last_seen") or 0) < cutoff:
+            continue
+        dist = haversine(lat, lng, u["lat"], u["lon"])
+        if dist <= RADIUS_M:
+            nearby_users.append({
+                "id": u["id"],
+                "username": u["username"],
+                "lat": u["lat"],
+                "lng": u["lon"],
+                "is_premium": u.get("is_premium", False),
+            })
+
+    # Wisps near the user (from in-memory + random generation)
+    move_wisps()
+    wisps_raw = get_wisps()
+    nearby_wisps = []
+    for w in wisps_raw:
+        dist = haversine(lat, lng, w.get("lat", 0), w.get("lon", 0))
+        if dist <= RADIUS_M:
+            nearby_wisps.append({
+                "id": w["id"],
+                "lat": w["lat"],
+                "lng": w.get("lon", w.get("lng", 0)),
+                "xp": w.get("wisp_reward", 10),
+            })
+
+    # Spawn some wisps near the user if none exist
+    if len(nearby_wisps) < 5:
+        for _ in range(5 - len(nearby_wisps)):
+            wisp = {
+                "id": f"wisp_{uuid.uuid4().hex[:6]}",
+                "username": "Wisp",
+                "type": "wisp",
+                "lat": lat + random.uniform(-0.01, 0.01),
+                "lon": lng + random.uniform(-0.01, 0.01),
+                "wisp_reward": random.choices([5, 10, 15, 20], weights=[40, 30, 20, 10])[0],
+            }
+            add_wisp(wisp)
+            nearby_wisps.append({
+                "id": wisp["id"],
+                "lat": wisp["lat"],
+                "lng": wisp["lon"],
+                "xp": wisp["wisp_reward"],
+            })
+
+    # Hotspots (heatmap data — returned for all, filtered on frontend by premium)
+    hotspots_res = supabase.table("hotspots").select("*").execute()
+    nearby_hotspots = []
+    for hs in (hotspots_res.data or []):
+        if not hs.get("lat") or not hs.get("lng"):
+            continue
+        dist = haversine(lat, lng, hs["lat"], hs["lng"])
+        if dist <= RADIUS_M * 2:
+            nearby_hotspots.append({
+                "id": hs["id"],
+                "lat": hs["lat"],
+                "lng": hs["lng"],
+                "visit_count": hs.get("visit_count", 1),
+                "name": hs.get("name", "Hotspot"),
+            })
+
+    return {
+        "users": nearby_users,
+        "wisps": nearby_wisps,
+        "hotspots": nearby_hotspots,
+    }
+
+
+@app.post("/api/wisp/collect")
+async def collect_wisp(request: Request, auth=Depends(get_current_user)):
+    """Called when user taps a wisp on the map."""
+    body = await request.json()
+    wisp_id = body.get("wisp_id")
+
+    wisp = _wisps.get(wisp_id)
+    xp_reward = wisp.get("wisp_reward", 10) if wisp else 10
+
+    # Remove wisp
+    remove_wisp(wisp_id)
+
+    # Update user XP + wisp coins
+    user = auth
+    new_xp = (user.get("xp") or 0) + xp_reward
+    new_level = max(1, new_xp // 100 + 1)
+    new_coins = (user.get("wisp_coins") or 0) + random.randint(1, 3)
+
+    supabase.table("users").update({
+        "xp": new_xp,
+        "level": new_level,
+        "wisp_coins": new_coins,
+    }).eq("id", auth["id"]).execute()
+
+    return {"status": "collected", "xp_earned": xp_reward, "new_xp": new_xp, "new_level": new_level}
+
+
+@app.get("/api/user/{user_id}")
+async def get_user(user_id: str, auth=Depends(get_current_user)):
+    """Get a user's profile by ID."""
+    result = supabase.table("users").select("*").eq("id", user_id).limit(1).execute()
+    if not result.data:
+        raise HTTPException(404, "User not found")
+    u = result.data[0]
+    return {
+        "id": u["id"],
+        "username": u["username"],
+        "xp": u.get("xp", 0),
+        "level": u.get("level", 1),
+        "steps": u.get("steps", 0),
+        "calories": u.get("calories", 0),
+        "wisp_coins": u.get("wisp_coins", 0),
+        "wisps_collected": u.get("xp", 0),
+        "is_premium": u.get("is_premium", False),
+        "inventory": u.get("inventory", []),
+    }
+
+
+@app.post("/api/subscribe")
+async def subscribe(request: Request, auth=Depends(get_current_user)):
+    """Mark a user as premium."""
+    body = await request.json()
+    plan = body.get("plan", "monthly")
+    supabase.table("users").update({
+        "is_premium": True,
+        "subscription_plan": plan,
+    }).eq("id", auth["id"]).execute()
+    return {"status": "subscribed", "plan": plan}
