@@ -2,18 +2,26 @@
 body, html {
     margin: 0;
     padding: 0;
-    /* Fixed: Nebula fills the background of the entire app */
-    background: #000 url('https://media.base44.com/images/public/69e5128edd9f705dafff6a9b/d44e87d3c_generated_image.png') center/cover no-repeat fixed;
+    width: 100%;
+    height: 100%;
+    /* The main background image */
+    background: #000 url(https://media.base44.com/images/public/69e5128edd9f705dafff6a9b/d44e87d3c_generated_image.png) no-repeat center center fixed !important;
+    background-size: cover !important;
     overflow: hidden;
-    font-family: 'Courier New', Courier, monospace;
 }
 
-#map {
+#map, .leaflet-container, .leaflet-pane {
     height: 100vh;
     width: 100vw;
-    /* Fixed: Set to transparent so the nebula isn't covered up */
-    background: transparent; 
-    transition: filter 0.2s ease, opacity 0.5s ease;
+    /* This forces the map tiles and container to be see-through */
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* Fix for the tiles themselves */
+.leaflet-tile-container {
+    /* Slightly darkens the nebula so you can still see map lines if you add them later */
+    background: rgba(0, 0, 0, 0.2); 
 }
 
 /* 2. The Status Bar (Top Left) */
