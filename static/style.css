@@ -164,20 +164,31 @@ body, html {
   padding: 2px; 
 }
 
-/* Make the Main Containers See-Through */
-.container, .main-screen, [id*="card"], [class*="box"] {
-    background: rgba(0, 0, 0, 0.4) !important; /* 40% black, 60% see-through */
-    backdrop-filter: blur(8px); /* Frosty effect */
+/* --- THE NEBULA PUNCH-THROUGH --- */
+
+/* Target the main app layout and every section card */
+main, section, .dashboard, .card, .content-box, 
+[class*="container"], [class*="section"], [class*="wrapper"] {
+    background: rgba(0, 0, 0, 0.4) !important; /* 40% tint */
+    backdrop-filter: blur(10px) saturate(150%); /* Glassmorphism effect */
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
 }
 
-/* Specifically for your Coach and Pulse sections */
-div {
-    background-color: transparent !important;
+/* This specifically kills the solid black on those big inner boxes */
+.ai-coach-container, .signal-pulse-container, .inner-box {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    background: transparent !important;
 }
 
-/* Keep the header dark but let some nebula peek through */
-header, .nav-bar {
-    background: rgba(0, 0, 0, 0.7) !important;
-    border-bottom: 1px solid #444;
+/* Keep the top navigation bar dark but translucent */
+header, nav, .top-bar {
+    background: rgba(0, 0, 0, 0.75) !important;
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2); /* Cyan glow bottom border */
+}
+
+/* Universal fix: remove solid black from any deep-nested divs */
+div:not(.spazz-logo-bg) {
+    background-color: transparent;
 }
