@@ -3,64 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <div class="ping-badge">Nearby User Ping Active</div>
     <title>SPAZZ</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        /* --- BASE44 NEBULA DESIGN SYSTEM --- */
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-cyan: #00ffff;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
         *,*::before,*::after{box-sizing:border-box;}
-        body,html{margin:0;padding:0;background:#000;font-family:'Inter',sans-serif;color:#fff;height:100%;overflow:hidden;}
+        
+        body,html{
+            margin:0;padding:0;
+            background: #000 url(https://media.base44.com/images/public/69e5128edd9f705dafff6a9b/d44e87d3c_generated_image.png) no-repeat center center fixed;
+            background-size: cover;
+            font-family:'Inter',sans-serif;
+            color:#fff;height:100%;overflow:hidden;
+        }
 
         /* SCREENS */
-        .screen{display:none;width:100%;height:100vh;}
+        .screen{display:none;width:100%;height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
         .screen.active{display:flex;}
 
-        /* AUTH */
-        #auth-screen{flex-direction:column;align-items:center;justify-content:center;background:#000;padding:24px;}
-        .logo{font-size:2.8rem;font-weight:700;letter-spacing:6px;color:#ff00ff;text-shadow:0 0 20px #ff00ff;margin-bottom:8px;}
-        .tagline{font-size:0.7rem;letter-spacing:3px;color:#00ffff;margin-bottom:36px;text-transform:uppercase;}
-        .auth-box{width:100%;max-width:360px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,0,255,0.3);border-radius:16px;padding:28px 24px;}
+        /* AUTH ELEMENTS */
+        .ping-badge {
+            display: inline-flex; align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50px; padding: 6px 14px;
+            font-size: 0.65rem; letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 20px;
+            backdrop-filter: blur(5px); z-index: 10;
+        }
+        .ping-badge::before {
+            content: ""; width: 6px; height: 6px;
+            background: var(--neon-pink); border-radius: 50%;
+            margin-right: 10px; box-shadow: 0 0 10px var(--neon-pink);
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes pulse-ring { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .logo{
+            font-size:3rem; font-weight:900; letter-spacing:10px;
+            color:#fff; text-shadow:0 0 15px var(--neon-pink);
+            margin-bottom:8px; text-transform: uppercase;
+        }
+        .tagline{font-size:0.75rem; letter-spacing:5px; color:var(--neon-cyan); margin-bottom:36px; text-transform:uppercase;}
+
+        .auth-box{
+            width:100%; max-width:360px;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 28px 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
         .auth-tabs{display:flex;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.1);}
         .auth-tab{flex:1;padding:10px;text-align:center;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:rgba(255,255,255,0.4);border-bottom:2px solid transparent;transition:all 0.2s;}
-        .auth-tab.active{color:#ff00ff;border-bottom-color:#ff00ff;}
+        .auth-tab.active{color:var(--neon-pink);border-bottom-color:var(--neon-pink);}
+
         .auth-form{display:none;flex-direction:column;gap:14px;}
         .auth-form.active{display:flex;}
-        .auth-form input,.auth-form select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 16px;color:#fff;font-size:0.9rem;outline:none;transition:border-color 0.2s;}
-        .auth-form input:focus,.auth-form select:focus{border-color:#ff00ff;}
-        .auth-btn{background:#ff00ff;border:none;color:#fff;padding:14px;border-radius:25px;font-weight:700;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:6px;}
+        .auth-form input,.auth-form select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 16px;color:#fff;font-size:0.9rem;outline:none;}
         
-        #google-btn{background: #fff; color: #000; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px;}
+        .auth-btn{
+            background:transparent; border:2px solid var(--neon-pink);
+            color:#fff; padding:14px; border-radius:25px;
+            font-weight:700; font-size:0.85rem; letter-spacing:2px;
+            text-transform:uppercase; cursor:pointer; margin-top:6px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+            transition: 0.3s;
+        }
+        .auth-btn:hover{ background: var(--neon-pink); box-shadow: 0 0 30px var(--neon-pink); color: #000; }
+        
+        #google-btn{ background: #fff !important; color: #000 !important; border:none; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;}
 
-        /* ADMIN & USER UI STYLES REMAIN SAME */
+        /* BOOT SCREEN */
         #boot-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:black;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s ease;}
-        .poster-logo{max-width:70%;max-height:60vh;margin-bottom:20px;}
-        .glitch-text{color:#00ffff;letter-spacing:5px;font-size:0.7rem;text-align:center;}
-        #map{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background:#050505;}
-        #status{position:fixed;top:20px;left:20px;z-index:1000;padding:12px 20px;background:rgba(0,0,0,0.85);border:1px solid #ff00ff;color:#00ffff;font-weight:bold;letter-spacing:2px;text-transform:uppercase;font-size:0.8rem;}
-        .tab-bar{display:flex;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
-        .tab{flex:1;padding:12px 4px;text-align:center;font-size:0.6rem;cursor:pointer;color:rgba(255,255,255,0.4);}
-        .tab.active{color:#ff00ff;border-bottom:2px solid #ff00ff;}
-        .tab-content{display:none;flex:1;overflow-y:auto;flex-direction:column;}
-        .tab-content.active{display:flex;}
-        #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(20,20,20,0.95);border:1px solid rgba(255,0,255,0.4);color:#fff;padding:12px 24px;border-radius:30px;font-size:0.85rem;z-index:9000;opacity:0;transition:opacity 0.3s;}
+        .glitch-text{color:var(--neon-cyan);letter-spacing:5px;font-size:0.7rem;text-align:center;}
+
+        #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(20,20,20,0.95);border:1px solid var(--neon-pink);color:#fff;padding:12px 24px;border-radius:30px;font-size:0.85rem;z-index:9000;opacity:0;transition:opacity 0.3s;pointer-events:none;}
         #toast.show{opacity:1;}
-        #flash-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:8000;pointer-events:none;opacity:0;}
     </style>
 </head>
 <body>
 
 <div id="boot-screen">
-    <img src="static/poster.png" class="poster-logo" onerror="this.style.display='none'">
     <p class="glitch-text">INITIALIZING SPAZZ...<br>CONNECTING TO NETWORK</p>
 </div>
 
 <div id="toast"></div>
-<div id="flash-overlay"></div>
 
 <div id="auth-screen" class="screen">
+    <div class="ping-badge">Nearby User Ping Active</div>
     <div class="logo">SPAZZ</div>
     <div class="tagline">Find your people</div>
+    
     <div class="auth-box">
         <div class="auth-tabs">
             <div class="auth-tab active" onclick="switchAuthTab('login')">Login</div>
@@ -87,22 +131,11 @@
     </div>
 </div>
 
-<div id="user-screen" class="screen" style="flex-direction:column;">
-    <div class="top-nav" style="padding:20px; border-bottom:1px solid #333;">
-        <div class="app-name" style="color:#ff00ff; font-weight:bold; letter-spacing:4px;">SPAZZ</div>
-    </div>
-    <div id="coach-panel" class="tab-content active" style="padding:20px;">
-        <div class="coach-bubble" style="border:1px solid #00ffff; padding:15px; color:#00ffff;">Scanning for signals...</div>
-    </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
     // 1. Setup Supabase
     const supabaseUrl = 'https://kytmktshrywvxigobsxd.supabase.co';
-    const supabaseKey = 'PASTE_YOUR_ANON_PUBLIC_KEY_HERE'; // <--- PASTE YOUR KEY HERE
+    const supabaseKey = 'PASTE_YOUR_ANON_PUBLIC_KEY_HERE'; 
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
     // 2. Auth Logic
@@ -135,14 +168,13 @@
             const boot = document.getElementById('boot-screen');
             if (boot) {
                 boot.style.opacity = '0';
-                setTimeout(() => { boot.remove(); document.getElementById('auth-screen').classList.add('active'); }, 1000);
+                setTimeout(() => { 
+                    boot.remove(); 
+                    document.getElementById('auth-screen').classList.add('active'); 
+                }, 1000);
             }
         }, 2000);
     });
-
-    // Placeholder for other logic
-    let SESSION = null;
-    function logout() { localStorage.removeItem('spazz_session'); location.reload(); }
 </script>
 </body>
 </html>
