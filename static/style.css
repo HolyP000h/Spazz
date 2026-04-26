@@ -204,18 +204,25 @@ main, #root, #__next, .app-shell, .layout-wrapper {
     background: transparent !important;
 }
 
-body {
-    background: radial-gradient(circle at center, #1a0033 0%, #000 70%);
-    position: relative;
-    overflow: hidden;
+.logo {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
+    letter-spacing: 8px;
 }
 
-/* Creating a faint "lightning" pulse effect */
-body::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: url('https://www.transparenttextures.com/patterns/dark-matter.png'); /* Adds texture */
-    opacity: 0.3;
-    pointer-events: none;
+.auth-btn {
+    border: 2px solid #ff00ff;
+    background: rgba(255, 0, 255, 0.1);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+    backdrop-filter: blur(5px); /* Glassmorphism effect */
+    transition: all 0.3s ease;
+}
+
+.auth-btn:hover {
+    background: #ff00ff;
+    box-shadow: 0 0 30px #ff00ff;
+    transform: translateY(-2px);
 }
