@@ -22,7 +22,7 @@ ADMIN_IDS = {"user_ben"}
 # ── SUPABASE ─────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://kytmktshrywvxigobsxd.supabase.co")
 supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = create_client(SUPABASE_URL, supabase_key)
 
 COACH_TIPS_LAZY = [
     "You've been still for a while. Wisps don't come to you.",
