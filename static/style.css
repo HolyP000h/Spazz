@@ -219,6 +219,72 @@ main, #root, #__next, .app-shell, .layout-wrapper {
     transition: all 0.3s ease;
 }
 
+/* --- THE NEARBY PING BADGE --- */
+.ping-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    padding: 6px 16px;
+    font-size: 0.65rem;
+    color: #fff;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.ping-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: #ff00ff;
+    border-radius: 50%;
+    margin-right: 10px;
+    box-shadow: 0 0 10px #ff00ff;
+    animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.4; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* --- THE CLEAN GOOGLE PILL --- */
+#google-btn {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 600;
+    margin-top: 25px;
+    text-shadow: none !important; /* No glow on white button */
+}
+
+#google-btn:hover {
+    background: #f0f0f0 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+}
+
+/* --- TABS POLISH --- */
+.tab-bar {
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+}
+
+.tab.active {
+    color: #ff00ff !important;
+    border-bottom: 2px solid #ff00ff !important;
+    text-shadow: 0 0 8px rgba(255,0,255,0.5);
+}
+
 .auth-btn:hover {
     background: #ff00ff;
     box-shadow: 0 0 30px #ff00ff;
